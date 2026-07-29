@@ -1,10 +1,14 @@
+# board ID は ZMK 0.4 / Zephyr 4.1 以降の HWMv2 形式。
+#   <board>[@revision]/<soc>/zmk   … 単一 SoC なので soc 部を省いて `xiao_ble//zmk`
+# 旧表記の `xiao_ble` だと「not set up for ZMK」で落ちる。
+# https://zmk.dev/blog/2025/12/09/zephyr-4-1#zmk-board-variant
 include:
   # 左 = ペリフェラル（キーのみ）
-  - board: xiao_ble
+  - board: xiao_ble//zmk
     shield: rhyn47_left
   # 右 = セントラル（キー + トラックボール）
-  - board: xiao_ble
+  - board: xiao_ble//zmk
     shield: rhyn47_right
   # ペアリングが壊れた時の設定リセット用（書いたあと必ず本ファームを焼き直す）
-  - board: xiao_ble
+  - board: xiao_ble//zmk
     shield: settings_reset

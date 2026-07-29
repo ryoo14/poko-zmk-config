@@ -1,0 +1,13 @@
+# west workspace（ローカルで west init / west update すると生える）
+# ※ 必ずルート固定（先頭 /）にすること。無印 `zephyr/` だと
+#    config/zephyr/module.yml まで無視されて shield が見つからなくなる。
+/.west/
+/zmk/
+/zephyr/
+/modules/
+/tools/
+/bootloader/
+/keymap-module/
+/build/
+
+.DS_Store

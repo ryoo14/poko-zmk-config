@@ -7,16 +7,18 @@ XIAO nRF52840 Plus × 2 の完全無線分割（左右 BLE）＋右手トラッ�
 
 | | |
 |---|---|
-| board | `xiao_ble`（ZMK main） |
+| board | `xiao_ble//zmk`（ZMK main / Zephyr 4.1 の HWMv2 バリアント表記） |
 | shield | `rhyn47_left`（ペリフェラル）/ `rhyn47_right`（セントラル＋トラボ） |
 | マトリクス | 4行6列 × 左右、`col2row`、外部抵抗なし |
 | 論理グリッド | 4行12列。右は `col-offset = 6`。`RC(3,6)` はトラボ穴 → 計 **47キー** |
 | 電池監視 | 外部分圧 1MΩ/470kΩ → A0 (P0.02/AIN0)。ボード標準 `vbatt` は無効化 |
 
 ```
-firmware/
+rhyn47-zmk-config/
 ├── build.yaml                     ビルド対象（board × shield）
-├── .github/workflows/             ※ワークフローはリポジトリルートの .github/ にある
+├── .github/workflows/build.yml    本家の再利用ワークフローを呼ぶだけ
+├── wireless-rhyn-design.md        設計書（PCB・電源・機構まで含む）
+├── zmk-implementation-notes.md    ZMK 実装ノート
 └── config/
     ├── west.yml                   ZMK 本体 + PMW3610 ドライバ
     ├── zephyr/module.yml          config/boards を shield 探索対象にする
@@ -34,16 +36,21 @@ firmware/
 
 ## ビルド
 
-GitHub Actions（`.github/workflows/build-split-wireless.yml`）で自動ビルド。
-Artifacts から `rhyn47-split-wireless.zip` を落とすと `rhyn47_left-xiao_ble-zmk.uf2` /
-`rhyn47_right-xiao_ble-zmk.uf2` / `settings_reset-xiao_ble-zmk.uf2` が入っている。
+GitHub Actions（`.github/workflows/build.yml`）で自動ビルド。Artifacts の
+`rhyn47-split-wireless.zip` に左・右・`settings_reset` の3つの `.uf2` が入る。
 
-ローカルで回す場合は通常の ZMK ワークスペースで：
+ローカルで回す場合はこのリポジトリを west workspace のルートにして：
 
 ```sh
-west build -p -d build/left  -b xiao_ble -- -DSHIELD=rhyn47_left  -DZMK_CONFIG=<repo>/split-wireless/firmware/config
-west build -p -d build/right -b xiao_ble -- -DSHIELD=rhyn47_right -DZMK_CONFIG=<repo>/split-wireless/firmware/config
+west init -l config
+west update
+west zephyr-export
+
+west build -p -s zmk/app -d build/left  -b 'xiao_ble//zmk' -- -DSHIELD=rhyn47_left  -DZMK_CONFIG="$PWD/config"
+west build -p -s zmk/app -d build/right -b 'xiao_ble//zmk' -- -DSHIELD=rhyn47_right -DZMK_CONFIG="$PWD/config"
 ```
+
+`xiao_ble//zmk` の `//` はシェルに食われへんようクォートしとくこと。
 
 ## 書き込み
 
