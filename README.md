@@ -37,7 +37,27 @@ rhyn47-zmk-config/
 ## ビルド
 
 GitHub Actions（`.github/workflows/build.yml`）で自動ビルド。Artifacts の
-`rhyn47-split-wireless.zip` に左・右・`settings_reset` の3つの `.uf2` が入る。
+`rhyn47-split-wireless.zip` に5つの `.uf2` が入る。
+
+| uf2 | 用途 |
+|---|---|
+| `rhyn47_left` / `rhyn47_right` | 常用。ログ無し（省電力のため） |
+| `rhyn47_left-logging` / `rhyn47_right-logging` | ブリングアップ用。USB シリアルにログが出る |
+| `settings_reset` | ペアリング初期化。焼いたら必ず本ファームを焼き直す |
+
+### ログの見かた（macOS）
+
+`zmk-usb-logging` スニペット付きのファームは USB CDC-ACM のシリアルポートを生やす。
+
+```sh
+brew install tio
+ls /dev/cu.usbmodem*
+tio /dev/cu.usbmodemXXXXX
+```
+
+`tio` はリセットでポートが消えても自動再接続するので、`screen` より扱いやすい
+（XIAO はリセットのたびに USB を再列挙するため）。`screen /dev/cu.usbmodemXXXXX 115200`
+でも見られる（終了は `Ctrl-A` → `K`）。CDC-ACM は仮想シリアルなのでボーレートは何でもよい。
 
 ローカルで回す場合はこのリポジトリを west workspace のルートにして：
 

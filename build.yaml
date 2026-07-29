@@ -2,13 +2,31 @@
 #   <board>[@revision]/<soc>/zmk   … 単一 SoC なので soc 部を省いて `xiao_ble//zmk`
 # 旧表記の `xiao_ble` だと「not set up for ZMK」で落ちる。
 # https://zmk.dev/blog/2025/12/09/zephyr-4-1#zmk-board-variant
+#
+# USB ログは `zmk-usb-logging` スニペットで付ける。CONFIG_ZMK_USB_LOGGING=y を
+# conf に書くだけでは不足で、スニペット側の overlay が CDC-ACM デバイスを生やして
+# chosen zephyr,console を向けている。常用ファームは消費電力のため無効のままにし、
+# ブリングアップ用に別 artifact として並べる。
 include:
+  # --- 常用（ログ無し）---
   # 左 = ペリフェラル（キーのみ）
   - board: xiao_ble//zmk
     shield: rhyn47_left
   # 右 = セントラル（キー + トラックボール）
   - board: xiao_ble//zmk
     shield: rhyn47_right
-  # ペアリングが壊れた時の設定リセット用（書いたあと必ず本ファームを焼き直す）
+
+  # --- ブリングアップ用（USB シリアルにログが出る）---
+  - board: xiao_ble//zmk
+    shield: rhyn47_left
+    snippet: zmk-usb-logging
+    artifact-name: rhyn47_left-logging
+  - board: xiao_ble//zmk
+    shield: rhyn47_right
+    snippet: zmk-usb-logging
+    artifact-name: rhyn47_right-logging
+
+  # --- ペアリングが壊れた時の設定リセット用 ---
+  # 焼いたあと必ず本ファームを焼き直すこと
   - board: xiao_ble//zmk
     shield: settings_reset
