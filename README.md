@@ -89,11 +89,25 @@ BASE / LOWER / UPPER / FN / MOUSE / SCROLL の6レイヤ。
 - FN レイヤに BLE 操作を追加（無線化に伴う新規）。プロファイル選択 `&bt BT_SEL 0-4` は **Q W E R T**、
   `&bt BT_CLR` は誤爆防止で BSPC の位置。`&out OUT_TOG` / `&bootloader` / `&sys_reset` は右半分。
 
+## 進捗
+
+素の XIAO nRF52840 × 2（基板・センサー・電池なし）で以下まで確認済み。詳細は
+`zmk-implementation-notes.md` §16。
+
+- [x] CI でビルド成功（左・右・`settings_reset` ＋ ログ版）
+- [x] `&spi0` が使える（SPIM0/TWIM0 の衝突なし）
+- [x] PMW3610 ドライバ実体化（`pixart,pmw3610-alt` / `CONFIG_PMW3610_ALT` で正解。非同期 init なのでセンサー無しでも止まらない）
+- [x] 外部分圧の ADC 初期化成功（`bvd_init: AIN0 setup returned 0`）
+- [x] kscan が §3 のピン割当どおりに設定される
+- [x] **左右の BLE 接続成立**（`split_svc_pos_state_ccc: value 1` / `security_changed level 2`）
+- [x] ホスト（macOS）の Bluetooth に `rhyn47` が出る
+
 ## 実機で潰す項目
 
-- [ ] `&spi0` が使えるか（nRF52840 は SPIM0/TWIM0 が周辺 ID 共有）。衝突するなら `&spi3` へ
-- [ ] ダイオードの物理向きが `col2row`（ROW=プルダウン, COL=ACTIVE_HIGH）と一致するか
-- [ ] PMW3610 ドライバのフォーク確定 → `compatible` と `CONFIG_*` を README で照合（west.yml / overlay / conf の3箇所）
-- [ ] トラボの向き（`swap-xy` / `invert-x` / `invert-y`）と CPI
-- [ ] 電池分圧の `channel@0` 明示が要るか、NiMH の残量%曲線
+- [ ] ダイオードの物理向きが `col2row`（ROW=プルダウン, COL=ACTIVE_HIGH）と一致するか → メイン基板実装後
+- [ ] キー入力・NKRO・ゴースト（47キー）
+- [ ] トラボの向き（`swap-xy` / `invert-x` / `invert-y`）と CPI → センサー実装後
+- [ ] MOTION の外部プルアップ要否
+- [ ] NiMH の残量表示（notes §16-6 の ×3 リスケール案。実測 mV を見てから）
+- [ ] 消費電流の実測 → スリープ・BLE 接続間隔の詰め
 - [ ] 技適の決着（電波を出す運用の前。USB 有線でのキー検証は技適前でも可）

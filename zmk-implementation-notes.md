@@ -1,9 +1,12 @@
 # ZMK ファーム実装ノート（rhyn47 / split-wireless）
 
 `wireless-rhyn-design.md` を土台に、ZMK ファームを書くための調査結果と設計判断をまとめたもの。
-次のセッションでこのノートだけを見れば実装に着手できる状態にすることが目的。**まだファーム本体のファイルは未作成**。
 
-最終更新：2026-07-29 / ステータス：**方針確定・実装前**
+最終更新：2026-07-29 / ステータス：**実装済み・ビルド成功・素の XIAO で左右 BLE 接続まで確認**。
+残るはメイン基板／センサー実装後の実機検証（キー入力・トラボ・電池）。実績は §16 を参照。
+
+> §1〜§15 は実装前に立てた方針。**実際に作ったものとのズレや、実装中に判明した事実は §16 にまとめてある。**
+> 食い違う場合は §16 を正とすること。
 
 ---
 
@@ -38,6 +41,12 @@
 ---
 
 ## 2. リポジトリ構成（ZMK config リポジトリ形式）
+
+> **⚠ §16-1 で変更済み。** ファームは独立リポジトリ `ryoo14/rhyn47-zmk-config` に切り出した。
+> `firmware/` 配下に置く形では ZMK の再利用ワークフローが動かない（west の topdir がズレる）。
+> また `zephyr/module.yml` の位置は `config/zephyr/module.yml`（`board_root: .`）が正しい。
+> 以下は当初案の記録。**実際の構成は下のツリーの `firmware/` を `rhyn47-zmk-config/`（リポジトリルート）
+> と読み替え、`zephyr/module.yml` を `config/` の下に移したもの。**
 
 `firmware/` 配下を ZMK の user config 形式で構成する。GitHub Actions でビルドする前提。
 
@@ -466,15 +475,22 @@ include:
 
 ## 14. 要確認・未決事項（実装/検証で潰す）
 
-- [ ] **`&spi0` が使えるか**（Zephyr base `xiao_ble.dts` で i2c0 と衝突しないか）。ダメなら `&spi3` に切替。
-- [ ] **ダイオードの物理向き**が ZMK `col2row`（ROW=プルダウン, COL=ACTIVE_HIGH）と一致するか。逆なら row2col + プルアップに。
-- [ ] **トラボ位置** `RC(3,6)`（右手内側最下段）で合っているか。物理レイアウト §16 確定後に最終化。
-- [ ] **PMW3610 ドライバのフォーク確定**（badjeff 前提）→ `compatible` 文字列・`CONFIG_*` 名を README で最終照合。
-- [ ] **電池 divider の channel@0 明示が要るか**、NiMH% 曲線の扱い（当面は電圧が読めれば可）。
+### 潰れたもの（根拠は §16）
+
+- [x] **`&spi0` が使えるか** → **使える**。SPIM0/TWIM0 の衝突なし。`&spi3` への切替は不要。
+- [x] **PMW3610 ドライバのフォーク確定** → **badjeff で正解**。`pixart,pmw3610-alt` / `CONFIG_PMW3610_ALT` がそのまま通り、実機でドライバが非同期 init を開始するところまで確認。
+- [x] **電池 divider の channel@0 明示が要るか** → **要る**。明示したままでよい。実機ログ `bvd_init: AIN0 setup returned 0`。
+- [x] **トラボ位置 `RC(3,6)`** → QMK 版 `lp_tb/v0_1/keymaps/vial/keymap.c` の row3 index6 が `KC_NO` で一致。※ただし新メイン基板の列配線が同じである前提は残る。
+- [x] **流用できるキーマップ資産** → **あった**。上記 QMK/Vial 版から6レイヤまるごと移植。
+
+### 残っているもの
+
+- [ ] **ダイオードの物理向き**が ZMK `col2row`（ROW=プルダウン, COL=ACTIVE_HIGH）と一致するか。逆なら row2col + プルアップに。→ **メイン基板実装後**。
 - [ ] **MOTION の外部プルアップ要否**（内蔵で受けられるかデータシート確認）。
+- [ ] **トラボの向き（`swap-xy` / `invert-x` / `invert-y`）と CPI** → センサー実装後に実機調整。overlay では全部コメントアウト中。
+- [ ] **NiMH の残量%表示**をどうするか → §16-6 に方針あり（devicetree でレンジを3倍にリスケール）。**実測 mV を見てから**。
 - [ ] **XIAO リセットボタンのアクセス**（ケース設計）。
 - [ ] **技適の決着**（電波を出す運用の前）。有線検証は技適前でも可。
-- [ ] 既存 rhyn バリアントに**流用できるキーマップ資産**があるか。
 
 ---
 
@@ -489,7 +505,169 @@ include:
 
 ---
 
-### 確定した設計判断（このセッションで決めたこと）
+### 確定した設計判断（実装前セッションで決めたこと）
 - **右手 = セントラル / 左手 = ペリフェラル**（トラボをセントラル直結にして BLE ポインタ転送を回避）。
 - ボードは `xiao_ble`。ZMK は main。PMW3610 は badjeff ドライバを第一候補。
 - 電池監視はオンボード `vbatt` を無効化し、外部分圧 A0/AIN0 に上書き。
+
+---
+
+## 16. 実装・ブリングアップ実績（2026-07-29）
+
+§1〜§15 の方針で実際に書いて、CI を通し、素の XIAO 2枚で動かすところまでやった記録。
+**方針と食い違う箇所はこちらが正。**
+
+### 16-1. リポジトリを分離した
+
+ファームは **別リポジトリ `ryoo14/rhyn47-zmk-config`** に切り出した（§2 の「`firmware/` 配下に置く」から変更）。
+
+**理由：ZMK の再利用ワークフローは zmk-config がリポジトリルート直下でないと動かない。**
+
+- ワークフローは `west init -l "<repo>/<config_path>"` を実行したあと、`west update` を**リポジトリルート**で叩く
+- west の `Init.local()` は `topdir = マニフェストディレクトリの親` で workspace を作る
+  （west 本体 `src/west/app/project.py`。`self: path:` は local モードでは参照されない）
+- `config_path = split-wireless/firmware/config` だと `.west/` が `split-wireless/firmware/` にでき、
+  ルートから見ると**下**にあるので `west update` が見つけられず `no west workspace found` で落ちる
+- シンボリックリンクも west が `.resolve()` するので回避不可
+
+→ `config/` がルート直下にある構成なら `topdir` がルートに一致して解決。設計ドキュメント2つも一緒に移した。
+
+### 16-2. board ID は `xiao_ble//zmk`
+
+ZMK が 2026 年時点の main で Zephyr 4.1 に移行しており、**全ボードに `zmk` バリアント接尾辞が必須**。
+
+```
+<board>[@revision]/<soc>/zmk    単一 SoC なので soc 部を省略 → xiao_ble//zmk
+```
+
+旧表記 `xiao_ble` だと DTS 生成前に `The selected board is not set up for ZMK` で落ちる。
+shield・キーマップ側は変更不要（HWMv2 移行が要るのは board だけ）。
+https://zmk.dev/blog/2025/12/09/zephyr-4-1#zmk-board-variant
+
+### 16-3. USB ログは conf だけでは出ない
+
+§10 で `CONFIG_ZMK_USB_LOGGING=y` を conf に書く前提にしていたが、**それだけでは何も見えない**。
+本家の `zmk-usb-logging` スニペットは Kconfig に加えて overlay も当てている：
+
+```dts
+/ { chosen { zephyr,console = &snippet_zmk_usb_logging_uart; ... }; };
+&zephyr_udc0 {
+    snippet_zmk_usb_logging_uart: snippet_zmk_usb_logging_uart {
+        compatible = "zephyr,cdc-acm-uart";
+    };
+};
+```
+
+CDC-ACM デバイスを生やして `chosen zephyr,console` を向ける処理が要る。ドキュメントが
+「**古いボードなら** CONFIG を書け」と言っているのは、旧ボードの dts に cdc_acm ノードが入っていたから。
+
+→ **`build.yaml` で `snippet: zmk-usb-logging` を付ける**方式に変更。
+公式が「ログ有効化は電池持ちに無視できない影響がある」と明記しているため、
+常用ファームはログ無し、ブリングアップ用に `-logging` 付き artifact を別に出す構成にした。
+
+### 16-4. 左に `CONFIG_ZMK_POINTING` は不要（§10 のとおりで正しい）
+
+一度「共通キーマップに `&mkp` があるから左にも要る」と判断して入れたが、**誤り**。
+ZMK の `app/CMakeLists.txt` で `keymap.c` は
+
+```cmake
+if((NOT CONFIG_ZMK_SPLIT) OR CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
+```
+
+に閉じ込められており、**ペリフェラルはキーマップを一切コンパイルしない**。
+ペリフェラルの仕事はキー座標を送ることだけなので `&mkp` への参照が発生せず、リンクも通る。
+同じ `if` の中に `add_subdirectory_ifdef(CONFIG_ZMK_POINTING src/pointing/)` があるため、
+左に書いても何もコンパイルされない＝完全に無意味。→ 削除済み。
+
+### 16-5. ビルド緑＋実機ログで確認できたこと
+
+素の XIAO nRF52840 に `-logging` ファームを焼いて USB シリアル（`tio /dev/cu.usbmodem*`）で確認。
+**基板・センサー・電池が一切ない状態でここまで検証できた。**
+
+| ログ | 意味 |
+|---|---|
+| `<dbg> zmk: bvd_init: AIN0 setup returned 0` | 外部分圧の ADC 設定成功。`&vbatt` 無効化＋`vbatt_ext` 差し替えが機能 |
+| `<inf> pmw3610: PMW3610 async init step 0` | ドライバ実体化。**非同期 init なのでセンサー未実装でもブロックしない** |
+| `kscan_matrix_init_input_inst: Configured pin 3 / 28 / 29 on gpio@50000000` | ROW0-2 が P0.03 / P0.28 / P0.29 に設定。§3 のピン割当どおり（P1 は `gpio@50000300`） |
+| `bt_hci_core: HW Variant: nRF52x` | BLE コントローラ起動 |
+| `split_svc_pos_state_ccc: value 1` | **セントラルがペリフェラルのキー位置通知を購読＝左右リンク成立** |
+| `security_changed: ... level 2` | 左右間の接続が暗号化された |
+| `split_svc_select_phys_layout_callback` | セントラルがペリフェラルに物理レイアウトを書き込み |
+
+さらに **Mac の Bluetooth に `rhyn47` が出現し、左の電源を切っても残る**ことを確認 → 右（セントラル）が
+ホスト向けにアドバタイズできている。設計書 §1 の検証項目「ZMK のセントラル／ペリフェラルで左右が繋がるか」は**完了**。
+
+#### 無害だが紛らわしいログ
+
+- `<err> zmk: Failed to start advertising (-120)` … `-120` は `EALREADY`（すでにアドバタイズ中）。
+  この2秒後に左右接続が成立しているので実害なし。ペリフェラル側で出る ZMK の定番ノイズ。
+- `<inf> fs_nvs: No GC Done marker found: restarting gc` … 設定保存領域の初回フォーマット。2回目以降は出ない。
+- 行が途中で混ざる … USB 再列挙中のログ落ち。動作には影響しない。
+  頭から綺麗に見たいなら `CONFIG_LOG_PROCESS_THREAD_STARTUP_DELAY_MS=2000`。
+
+#### 基板なしでキー入力まで試す裏技（未実施）
+
+XIAO の **D5（COL0 / P0.05）と D1（ROW0 / P0.03）をジャンパーで短絡**すると `RC(0,0)` を押したのと同じ。
+ZMK は列を1本ずつ駆動するので単キーなら安全。左でやれば `TAB`、右でやれば `Y`（col-offset=6 の確認になる）。
+kscan → matrix-transform → keymap → 分割リンク → HID → ホスト の全経路が一度に検証できる。
+
+### 16-6. NiMH の電池残量表示（保留・実測後に判断）
+
+**現状：残量は出ない。これは正常。** 理由が2つ重なっている。
+
+1. 素の XIAO では A0 がフローティング（分圧回路はドーター基板の上）
+2. ZMK の%換算は Li 系（3.0〜4.2V）前提。NiMH 単4×1 の 1.0〜1.4V は曲線の下限より下で常に 0%
+
+ZMK 標準に「低電圧警告」機能はなく、この機体にはディスプレイも制御可能な LED もないため、
+**表示先はホストの%表示しかない**。
+
+→ 案：`rhyn47.dtsi` の分圧比を意図的に3倍に詐称して、1.0〜1.4V を 3.0〜4.2V に写す。
+
+```dts
+output-ohms = <470000>;
+full-ohms   = <4410000>;   // 実際は 1470000（1M+470k）。Li 曲線に載せるため ×3
+```
+
+ドライバは `電圧 = ADC値 × full-ohms / output-ohms` で復元するので、比を3倍にすれば報告値も3倍。
+両端（1.4V→100% / 1.0V→0%）がぴったり一致する。コード変更不要。BAS で外に出るのは%だけなので
+詐称した電圧が外部から見えることはない。
+
+**保留の理由**：抵抗誤差・ADC オフセットがあるので、ドーター基板で実際に A0 が何 mV を返すか
+（設計書 §15 の電源テスト後）を見てから `full-ohms` を決めたい。
+
+**補足**：エネループの放電曲線は容量の大半を 1.2V 台で過ごし、1.0V 付近で急落する。
+%表示は本質的に解像度が低いので、**「1.1V を切ったら交換」という閾値**のほうが実態に合う。
+設計書 §1 の「電池電圧を下げて何Vで停止するか実測」の結果から閾値を決めるとよい。
+
+### 16-7. キーマップは QMK 版から移植
+
+`low-profile-with-trackball` の QMK/Vial 版（`lp_tb/v0_1/keymaps/vial/keymap.c`）から6レイヤ
+（BASE / LOWER / UPPER / FN / MOUSE / SCROLL）をそのまま移植。物理配列が同一で、
+row3 index6 が `KC_NO`＝トラボ穴という構造まで一致していた。
+
+| QMK | ZMK |
+|---|---|
+| `set_auto_mouse_layer(_MOUSE)` | `&zip_temp_layer 4 400`（右 overlay の input-listener） |
+| `set_scroll_layer(_SCROLL)` | listener の `scroller` 子ノード（`zip_xy_to_scroll_mapper`） |
+| `pointing_device_task_user()` の v/h 反転 | `zip_scroll_transform` の X/Y invert |
+| `MS_BTN1..5` | `&mkp LCLK / RCLK / MCLK / MB4 / MB5` |
+
+**QMK に無かった追加**：FN レイヤに BLE 操作。プロファイル選択 `&bt BT_SEL 0-4` を **Q W E R T**、
+`&bt BT_CLR` は誤爆防止で離れた BSPC の位置。`&out OUT_TOG` / `&bootloader` / `&sys_reset` も配置。
+`&bootloader` を入れたのは、XIAO 直付けでリセットボタンがケースに隠れる懸念（設計書 §13）の保険。
+
+ZMK のプロファイルは**デフォルト5個**（`CONFIG_ZMK_BLE_PROFILE_COUNT`）。複数ホストに同時に
+「接続済み」と表示されることはあるが、**キー入力が飛ぶのはアクティブな1つだけ**。
+左右間の分割リンクはこの5枠とは別枠で、`&bt BT_CLR` では消えない（消したいときは `settings_reset`）。
+
+### 16-8. 残っている警告（対応不要）
+
+```
+CMake Deprecation Warning: The `config/boards` folder is deprecated. Please use a module instead.
+```
+
+ZMK は shield 定義を独立した Zephyr モジュール（別リポジトリ）にする方針に移行中。
+ただし現構成では回避不可能：CI が `west init -l config` を叩く以上、west がモジュールを探すのは
+`config/zephyr/module.yml` だけで、そのモジュールルートは `config/` ＝ boards は必然的に `config/boards/`。
+消すには3つ目のリポジトリを切って west.yml の `projects:` に足す必要がある。
+**Deprecation Warning でありビルドは通る**ので、動かなくなってから対応する。
