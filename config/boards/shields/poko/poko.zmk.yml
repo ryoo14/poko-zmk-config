@@ -1,0 +1,12 @@
+file_format: "1"
+id: poko
+name: poko (split-wireless)
+type: shield
+url: https://github.com/ryoo14/poko
+requires: [xiao_ble]
+features:
+  - keys
+  - pointer
+siblings:
+  - poko_left
+  - poko_right

@@ -1,6 +1,6 @@
-# ZMK ファーム実装ノート（rhyn47 / split-wireless）
+# ZMK ファーム実装ノート（poko / split-wireless）
 
-`wireless-rhyn-design.md` を土台に、ZMK ファームを書くための調査結果と設計判断をまとめたもの。
+`wireless-poko-design.md` を土台に、ZMK ファームを書くための調査結果と設計判断をまとめたもの。
 
 最終更新：2026-07-29 / ステータス：**実装済み・ビルド成功・素の XIAO で左右 BLE 接続まで確認**。
 残るはメイン基板／センサー実装後の実機検証（キー入力・トラボ・電池）。実績は §16 を参照。
@@ -12,7 +12,7 @@
 
 ## 0. 結論サマリ（先に要点だけ）
 
-- **左右分割・完全無線**。4行6列オーソリニア × 左右、右手の左下1キーぶんがトラックボール。**総キー数 47**（左24 + 右23）。名前 `rhyn47` の 47 と一致。
+- **左右分割・完全無線**。4行6列オーソリニア × 左右、右手の左下1キーぶんがトラックボール。**総キー数 47**（左24 + 右23）。名前 `poko` の 47 と一致。
 - **右手 = セントラル（PC と BLE 接続する親側）／左手 = ペリフェラル**。
   - 理由：トラボが右手にある。トラボをセントラルに直結すれば **ポインタ入力を BLE 越しに転送しなくて済む**（分割リンクで一番重いのがポインタの高頻度データなので、これを渡さずに済むのは省電力・低遅延で有利）。
   - トレードオフ：USB ケーブルは右側に挿さる／親側（右）の消費がやや大きい。→ 許容。
@@ -42,10 +42,10 @@
 
 ## 2. リポジトリ構成（ZMK config リポジトリ形式）
 
-> **⚠ §16-1 で変更済み。** ファームは独立リポジトリ `ryoo14/rhyn47-zmk-config` に切り出した。
+> **⚠ §16-1 で変更済み。** ファームは独立リポジトリ `ryoo14/poko-zmk-config` に切り出した。
 > `firmware/` 配下に置く形では ZMK の再利用ワークフローが動かない（west の topdir がズレる）。
 > また `zephyr/module.yml` の位置は `config/zephyr/module.yml`（`board_root: .`）が正しい。
-> 以下は当初案の記録。**実際の構成は下のツリーの `firmware/` を `rhyn47-zmk-config/`（リポジトリルート）
+> 以下は当初案の記録。**実際の構成は下のツリーの `firmware/` を `poko-zmk-config/`（リポジトリルート）
 > と読み替え、`zephyr/module.yml` を `config/` の下に移したもの。**
 
 `firmware/` 配下を ZMK の user config 形式で構成する。GitHub Actions でビルドする前提。
@@ -57,22 +57,22 @@ firmware/
 │   └── module.yml                    # このリポを Zephyr モジュールとして認識させる（shields を探す用）※任意だが確実
 └── config/
     ├── west.yml                      # ZMK 本体 + pmw3610 ドライバの manifest
-    ├── rhyn47.keymap                 # 左右共通のキーマップ（47キー）
-    ├── rhyn47_left.conf              # 左（ペリフェラル）個別設定
-    ├── rhyn47_right.conf             # 右（セントラル）個別設定
+    ├── poko.keymap                 # 左右共通のキーマップ（47キー）
+    ├── poko_left.conf              # 左（ペリフェラル）個別設定
+    ├── poko_right.conf             # 右（セントラル）個別設定
     └── boards/
         └── shields/
-            └── rhyn47/
+            └── poko/
                 ├── Kconfig.shield
                 ├── Kconfig.defconfig       # SPLIT / セントラル役割 / キーボード名
-                ├── rhyn47.dtsi             # 共通：kscan・matrix-transform・電池上書き
-                ├── rhyn47_left.overlay     # 左：dtsi include のみ（col-offset=0）
-                ├── rhyn47_right.overlay    # 右：col-offset=6 + トラボ(SPI/PMW3610)
-                └── rhyn47.zmk.yml          # メタデータ（split: true など）
+                ├── poko.dtsi             # 共通：kscan・matrix-transform・電池上書き
+                ├── poko_left.overlay     # 左：dtsi include のみ（col-offset=0）
+                ├── poko_right.overlay    # 右：col-offset=6 + トラボ(SPI/PMW3610)
+                └── poko.zmk.yml          # メタデータ（split: true など）
 ```
 
-- **左右共通の shield 名 = `rhyn47`**、side は `rhyn47_left` / `rhyn47_right`。
-- キーマップ `rhyn47.keymap` は左右共通（ZMK 標準）。conf は side ごと。
+- **左右共通の shield 名 = `poko`**、side は `poko_left` / `poko_right`。
+- キーマップ `poko.keymap` は左右共通（ZMK 標準）。conf は side ごと。
 - `zephyr/module.yml` を置くと、config リポ自身の `boards/shields` を確実に拾える（近年の ZMK テンプレートの推奨）。
 
 ---
@@ -99,14 +99,14 @@ XIAO Plus の端子を、生 `&gpio0` / `&gpio1` で参照する（`xiao_d` ネ�
 | nCS（トラボ）| — | P1.03 | `cs-gpios = <&gpio1 3 GPIO_ACTIVE_LOW>` |
 | MOTION（トラボ）| — | P0.15 | `irq-gpios = <&gpio0 15 (GPIO_ACTIVE_LOW \| GPIO_PULL_UP)>` |
 
-- **マトリクスのピンは左右で完全に同一**（XIAO＋ドーターは左右共通基板）。→ kscan は `rhyn47.dtsi` に1回だけ書けばよい。
+- **マトリクスのピンは左右で完全に同一**（XIAO＋ドーターは左右共通基板）。→ kscan は `poko.dtsi` に1回だけ書けばよい。
 - トラボ関連（SPI/PMW3610）は **右 overlay のみ**。左には書かない（左メイン基板にセンサーが無い＝クロックも通信も出ず電力の無駄なし。設計 §12.7）。
 
 ---
 
 ## 4. マトリクス（kscan）
 
-`rhyn47.dtsi` に共通で置く。ZMK の `zmk,kscan-gpio-matrix`。
+`poko.dtsi` に共通で置く。ZMK の `zmk,kscan-gpio-matrix`。
 
 ```dts
 / {
@@ -150,7 +150,7 @@ XIAO Plus の端子を、生 `&gpio0` / `&gpio1` で参照する（`xiao_d` ネ�
 12列 × 4行の論理グリッドに、左＝列0〜5／右＝列6〜11 を割り当てる。右手の左下（トラボ位置）だけ穴を開ける。
 
 ### 仕組み（corne と同一・本家で確認済み）
-- 共通の `default_transform` を `rhyn47.dtsi` に定義（`columns = <12>`, `rows = <4>`）。
+- 共通の `default_transform` を `poko.dtsi` に定義（`columns = <12>`, `rows = <4>`）。
 - **右 overlay で `&default_transform { col-offset = <6>; };`** を上書き → 右の物理列0〜5 が論理列6〜11 に写る。
 - 左 overlay は col-offset を触らない（＝0）。
 
@@ -159,7 +159,7 @@ XIAO Plus の端子を、生 `&gpio0` / `&gpio1` で参照する（`xiao_d` ネ�
 - → **`RC(3,6)` をマップから省く**。これで右は 23 キー。
 - **要確認**：「右手1列目」が内側（col6）か外側（col11）かは、実際の列配線・基板の向きで最終確定する（レイアウト §16 未確定のため）。内側＝`RC(3,6)` 省略で暫定。
 
-### transform 定義（`rhyn47.dtsi`）
+### transform 定義（`poko.dtsi`）
 ```dts
 #include <dt-bindings/zmk/matrix_transform.h>
 
@@ -181,7 +181,7 @@ RC(3,0) RC(3,1) RC(3,2) RC(3,3) RC(3,4) RC(3,5)           RC(3,7) RC(3,8) RC(3,9
 ```
 
 ### キーマップのバインド順（超重要）
-- `map` の並び順 = `rhyn47.keymap` の binding の並び順。
+- `map` の並び順 = `poko.keymap` の binding の並び順。
 - 行ごとの個数：**row0=12, row1=12, row2=12, row3=11**。合計 **47**。
 - row3 だけ 11 個（左6 + 右5）。キーマップを書くときは row3 の右側が1個少ないことに注意。
 
@@ -189,19 +189,19 @@ RC(3,0) RC(3,1) RC(3,2) RC(3,3) RC(3,4) RC(3,5)           RC(3,7) RC(3,8) RC(3,9
 
 ## 6. 分割ロール（右セントラル）
 
-### Kconfig.defconfig（`boards/shields/rhyn47/Kconfig.defconfig`）
+### Kconfig.defconfig（`boards/shields/poko/Kconfig.defconfig`）
 ```kconfig
 if SHIELD_RHYN47_LEFT
 
 config ZMK_KEYBOARD_NAME
-    default "rhyn47"
+    default "poko"
 
 endif
 
 if SHIELD_RHYN47_RIGHT
 
 config ZMK_KEYBOARD_NAME
-    default "rhyn47"
+    default "poko"
 
 # 右手をセントラル（PC と接続する親）にする
 config ZMK_SPLIT_ROLE_CENTRAL
@@ -218,20 +218,20 @@ endif
 ```
 - corne は左が central だが、**本設計は右 central**なので `ZMK_SPLIT_ROLE_CENTRAL default y` を **`SHIELD_RHYN47_RIGHT` 側**に置く。
 
-### Kconfig.shield（`boards/shields/rhyn47/Kconfig.shield`）
+### Kconfig.shield（`boards/shields/poko/Kconfig.shield`）
 ```kconfig
 config SHIELD_RHYN47_LEFT
-    def_bool $(shields_list_contains,rhyn47_left)
+    def_bool $(shields_list_contains,poko_left)
 
 config SHIELD_RHYN47_RIGHT
-    def_bool $(shields_list_contains,rhyn47_right)
+    def_bool $(shields_list_contains,poko_right)
 ```
 
-### rhyn47.zmk.yml（メタデータ）
+### poko.zmk.yml（メタデータ）
 ```yaml
 file_format: "1"
-id: rhyn47
-name: rhyn47
+id: poko
+name: poko
 type: shield
 url: ""
 requires: [xiao_ble]
@@ -239,8 +239,8 @@ features:
   - keys
   - pointer
 siblings:
-  - rhyn47_left
-  - rhyn47_right
+  - poko_left
+  - poko_right
 ```
 
 ---
@@ -271,9 +271,9 @@ manifest:
 - ドライバ候補：**badjeff/zmk-pmw3610-driver**（`compatible = "pixart,pmw3610-alt"`、`CONFIG_PMW3610_ALT`、upstream の `CONFIG_ZMK_POINTING` 対応）を第一候補にする。
 - 代替：`inorichi/zmk-pmw3610-driver`（`pixart,pmw3610` / `CONFIG_PMW3610`）、`AntoineGS/...`、`sayu-hub/...`。**採用フォークによって compatible 文字列と CONFIG 名が変わる**ので、README を最終確認してから合わせる。
 
-### 7-2. 右 overlay の SPI / センサー定義（`rhyn47_right.overlay`）
+### 7-2. 右 overlay の SPI / センサー定義（`poko_right.overlay`）
 ```dts
-#include "rhyn47.dtsi"
+#include "poko.dtsi"
 #include <dt-bindings/zmk/pointing.h>
 
 &default_transform {
@@ -335,9 +335,9 @@ manifest:
 - **MOTION の内蔵プルアップ**は `irq-gpios` の `GPIO_PULL_UP` フラグで対応（外部プルアップ不要か要データシート確認だが、内蔵で受ければ OK）。
 - **`&spi0` の可否＝要確認**：nRF52840 は SPIM0 と TWIM0 が周辺 ID を共有する。base `xiao_ble.dts`（Zephyr 側）で `&i2c0` が有効だと衝突する。§5 で見た ZMK 側 `xiao_ble_zmk.dts` では i2c0/spi0 は明示有効化されていなかったので使える見込みだが、**Zephyr の base dts を確認**すること。衝突する場合は **`&spi3`（専用 SPIM3、TWI と共有しない）** に切替（pinctrl はどのピンでもルーティング可）。
 
-### 7-3. 左 overlay（`rhyn47_left.overlay`）
+### 7-3. 左 overlay（`poko_left.overlay`）
 ```dts
-#include "rhyn47.dtsi"
+#include "poko.dtsi"
 // 左は col-offset=0（既定）。トラボ無し。追加設定なし。
 ```
 
@@ -345,7 +345,7 @@ manifest:
 
 ## 8. 電池電圧監視（外部分圧 A0/AIN0 に上書き）
 
-本設計は **単4×1 の生電圧（1.0〜1.4V）を外部分圧 1M/470k で A0(P0.02/AIN0) に入れて監視**する（設計 §4, §7）。ボード標準 `vbatt`（オンボード P0.31 分圧）ではないので上書きする。左右共通なので `rhyn47.dtsi` に置く。
+本設計は **単4×1 の生電圧（1.0〜1.4V）を外部分圧 1M/470k で A0(P0.02/AIN0) に入れて監視**する（設計 §4, §7）。ボード標準 `vbatt`（オンボード P0.31 分圧）ではないので上書きする。左右共通なので `poko.dtsi` に置く。
 
 ```dts
 #include <zephyr/dt-bindings/adc/adc.h>
@@ -400,7 +400,7 @@ manifest:
 
 - `wakeup-source;`（kscan、§4 で設定済み）でディープスリープからキー起床。
 - トラボは `MOTION`(irq-gpios) 割込みで起床。
-- 共通 conf（`rhyn47_left.conf` / `rhyn47_right.conf` 両方 or 共通化）に：
+- 共通 conf（`poko_left.conf` / `poko_right.conf` 両方 or 共通化）に：
 ```conf
 CONFIG_ZMK_SLEEP=y
 CONFIG_ZMK_IDLE_SLEEP_TIMEOUT=900000     # 15分でディープスリープ（値は運用で調整）
@@ -412,7 +412,7 @@ CONFIG_ZMK_EXT_POWER=y
 
 ## 10. conf ファイル
 
-### `config/rhyn47_right.conf`（セントラル・トラボあり）
+### `config/poko_right.conf`（セントラル・トラボあり）
 ```conf
 # --- ブリングアップ用ログ（設計 §13）---
 CONFIG_ZMK_USB_LOGGING=y
@@ -428,7 +428,7 @@ CONFIG_PMW3610_ALT_REPORT_INTERVAL_MIN=12
 CONFIG_ZMK_SLEEP=y
 ```
 
-### `config/rhyn47_left.conf`（ペリフェラル・キーのみ）
+### `config/poko_left.conf`（ペリフェラル・キーのみ）
 ```conf
 CONFIG_ZMK_USB_LOGGING=y
 CONFIG_ZMK_SLEEP=y
@@ -443,9 +443,9 @@ CONFIG_ZMK_SLEEP=y
 ```yaml
 include:
   - board: xiao_ble
-    shield: rhyn47_left
+    shield: poko_left
   - board: xiao_ble
-    shield: rhyn47_right
+    shield: poko_right
 ```
 
 ### 書き込み（設計 §13）
@@ -459,14 +459,14 @@ include:
 
 - 設計どおりキーマップは配線に依存しないので**後決めで OK**。まずは配置検証用に適当な `&kp` を 47 個並べれば足りる。
 - バインド順は §5 のとおり（row0=12, row1=12, row2=12, **row3=11**）。
-- 既に別 rhyn バリアント（`low-profile` / `standard` 等）のキーマップがあれば流用元にできる（リポジトリ他ディレクトリ参照）。→ **要確認**：流用可能なキーマップ資産の有無。
+- 既に別 poko バリアント（`low-profile` / `standard` 等）のキーマップがあれば流用元にできる（リポジトリ他ディレクトリ参照）。→ **要確認**：流用可能なキーマップ資産の有無。
 
 ---
 
 ## 13. 段階的ブリングアップ手順（設計 §13 準拠）
 
 1. **最小起動**：まず左右それぞれ単体で XIAO が起動するか（USB ログ / LED）。キーマップは仮でよい。
-2. **BLE 左右接続**：`rhyn47_left`（ペリフェラル）＋ `rhyn47_right`（セントラル）を書き、右が PC とペア → 左が右に繋がるか（ログ/接続状態）。※技適決着後に電波を出す。
+2. **BLE 左右接続**：`poko_left`（ペリフェラル）＋ `poko_right`（セントラル）を書き、右が PC とペア → 左が右に繋がるか（ログ/接続状態）。※技適決着後に電波を出す。
 3. **キー入力**：メイン基板が来たら 47 キーのスキャン確認。ここで **col2row のプル極性/ダイオード向き**を実機確定（§4 の注意）。NKRO・ゴースト確認。
 4. **トラボ**：右にセンサー実装後、PMW3610 の動作・CPI・向き（swap-xy/invert-x/invert-y）を調整。
 5. **省電力**：消費電流実測 → スリープ/接続間隔を詰める。電池持ち計測。
@@ -519,7 +519,7 @@ include:
 
 ### 16-1. リポジトリを分離した
 
-ファームは **別リポジトリ `ryoo14/rhyn47-zmk-config`** に切り出した（§2 の「`firmware/` 配下に置く」から変更）。
+ファームは **別リポジトリ `ryoo14/poko-zmk-config`** に切り出した（§2 の「`firmware/` 配下に置く」から変更）。
 
 **理由：ZMK の再利用ワークフローは zmk-config がリポジトリルート直下でないと動かない。**
 
@@ -594,7 +594,7 @@ if((NOT CONFIG_ZMK_SPLIT) OR CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
 | `security_changed: ... level 2` | 左右間の接続が暗号化された |
 | `split_svc_select_phys_layout_callback` | セントラルがペリフェラルに物理レイアウトを書き込み |
 
-さらに **Mac の Bluetooth に `rhyn47` が出現し、左の電源を切っても残る**ことを確認 → 右（セントラル）が
+さらに **Mac の Bluetooth に `poko` が出現し、左の電源を切っても残る**ことを確認 → 右（セントラル）が
 ホスト向けにアドバタイズできている。設計書 §1 の検証項目「ZMK のセントラル／ペリフェラルで左右が繋がるか」は**完了**。
 
 #### 無害だが紛らわしいログ
@@ -621,7 +621,7 @@ kscan → matrix-transform → keymap → 分割リンク → HID → ホスト 
 ZMK 標準に「低電圧警告」機能はなく、この機体にはディスプレイも制御可能な LED もないため、
 **表示先はホストの%表示しかない**。
 
-→ 案：`rhyn47.dtsi` の分圧比を意図的に3倍に詐称して、1.0〜1.4V を 3.0〜4.2V に写す。
+→ 案：`poko.dtsi` の分圧比を意図的に3倍に詐称して、1.0〜1.4V を 3.0〜4.2V に写す。
 
 ```dts
 output-ohms = <470000>;

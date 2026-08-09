@@ -1,10 +1,10 @@
 /*
- * rhyn47 (split-wireless) keymap
+ * poko (split-wireless) keymap
  *
  * low-profile-with-trackball の QMK 版 (lp_tb/v0_1/keymaps/vial/keymap.c) からの移植。
  * 物理配列が同じ 4行×12列・右手最下段内側がトラックボールなので、レイヤ構成をそのまま持ってきた。
  *
- * バインド順 = rhyn47.dtsi の matrix-transform の map 順。
+ * バインド順 = poko.dtsi の matrix-transform の map 順。
  *   row0 = 12 / row1 = 12 / row2 = 12 / row3 = 11（RC(3,6) がトラボ穴）  計 47
  *
  * QMK からの差分（意図的な追加）:
@@ -14,7 +14,7 @@
  *     プロファイル選択は Q W E R T（BT_SEL 0-4）。FN は右手/左手どちらの親指でも
  *     踏めるので、左手の指がそのまま数字代わりに使える配置にしてある。
  *     &bt BT_CLR は誤爆防止で離れた BSPC の位置に置いた。
- *   - QMK の auto-mouse / scroll layer は rhyn47_right.overlay 側の
+ *   - QMK の auto-mouse / scroll layer は poko_right.overlay 側の
  *     input-processors（zip_temp_layer / zip_xy_to_scroll_mapper）で再現している。
  */
 
@@ -75,7 +75,7 @@
             >;
         };
 
-        /* ボールを動かすと自動で乗る（rhyn47_right.overlay の zip_temp_layer） */
+        /* ボールを動かすと自動で乗る（poko_right.overlay の zip_temp_layer） */
         mouse_layer {
             display-name = "Mouse";
             bindings = <

@@ -1,48 +1,48 @@
-# rhyn47 split-wireless — ZMK firmware
+# poko split-wireless — ZMK firmware
 
 XIAO nRF52840 Plus × 2 の完全無線分割（左右 BLE）＋右手トラックボール（PMW3610）用の ZMK config。
-設計の背景は `wireless-rhyn-design.md`、実装判断は `zmk-implementation-notes.md` を参照。
+設計の背景は `wireless-poko-design.md`、実装判断は `zmk-implementation-notes.md` を参照。
 
 ## 構成
 
 | | |
 |---|---|
 | board | `xiao_ble//zmk`（ZMK main / Zephyr 4.1 の HWMv2 バリアント表記） |
-| shield | `rhyn47_left`（ペリフェラル）/ `rhyn47_right`（セントラル＋トラボ） |
+| shield | `poko_left`（ペリフェラル）/ `poko_right`（セントラル＋トラボ） |
 | マトリクス | 4行6列 × 左右、`col2row`、外部抵抗なし |
 | 論理グリッド | 4行12列。右は `col-offset = 6`。`RC(3,6)` はトラボ穴 → 計 **47キー** |
 | 電池監視 | 外部分圧 1MΩ/470kΩ → A0 (P0.02/AIN0)。ボード標準 `vbatt` は無効化 |
 
 ```
-rhyn47-zmk-config/
+poko-zmk-config/
 ├── build.yaml                     ビルド対象（board × shield）
 ├── .github/workflows/build.yml    本家の再利用ワークフローを呼ぶだけ
-├── wireless-rhyn-design.md        設計書（PCB・電源・機構まで含む）
+├── wireless-poko-design.md        設計書（PCB・電源・機構まで含む）
 ├── zmk-implementation-notes.md    ZMK 実装ノート
 └── config/
     ├── west.yml                   ZMK 本体 + PMW3610 ドライバ
     ├── zephyr/module.yml          config/boards を shield 探索対象にする
-    ├── rhyn47.keymap              左右共通キーマップ（47キー・6レイヤ）
-    ├── rhyn47_left.conf           左（ペリフェラル）
-    ├── rhyn47_right.conf          右（セントラル・トラボ）
-    └── boards/shields/rhyn47/
+    ├── poko.keymap              左右共通キーマップ（47キー・6レイヤ）
+    ├── poko_left.conf           左（ペリフェラル）
+    ├── poko_right.conf          右（セントラル・トラボ）
+    └── boards/shields/poko/
         ├── Kconfig.shield
         ├── Kconfig.defconfig      SPLIT / 右=セントラル / キーボード名
-        ├── rhyn47.dtsi            kscan・matrix-transform・電池分圧（左右共通）
-        ├── rhyn47_left.overlay
-        ├── rhyn47_right.overlay   col-offset=6 + SPI + PMW3610 + input-listener
-        └── rhyn47.zmk.yml
+        ├── poko.dtsi            kscan・matrix-transform・電池分圧（左右共通）
+        ├── poko_left.overlay
+        ├── poko_right.overlay   col-offset=6 + SPI + PMW3610 + input-listener
+        └── poko.zmk.yml
 ```
 
 ## ビルド
 
 GitHub Actions（`.github/workflows/build.yml`）で自動ビルド。Artifacts の
-`rhyn47-split-wireless.zip` に5つの `.uf2` が入る。
+`poko-split-wireless.zip` に5つの `.uf2` が入る。
 
 | uf2 | 用途 |
 |---|---|
-| `rhyn47_left` / `rhyn47_right` | 常用。ログ無し（省電力のため） |
-| `rhyn47_left-logging` / `rhyn47_right-logging` | ブリングアップ用。USB シリアルにログが出る |
+| `poko_left` / `poko_right` | 常用。ログ無し（省電力のため） |
+| `poko_left-logging` / `poko_right-logging` | ブリングアップ用。USB シリアルにログが出る |
 | `settings_reset` | ペアリング初期化。焼いたら必ず本ファームを焼き直す |
 
 ### ログの見かた（macOS）
@@ -66,8 +66,8 @@ west init -l config
 west update
 west zephyr-export
 
-west build -p -s zmk/app -d build/left  -b 'xiao_ble//zmk' -- -DSHIELD=rhyn47_left  -DZMK_CONFIG="$PWD/config"
-west build -p -s zmk/app -d build/right -b 'xiao_ble//zmk' -- -DSHIELD=rhyn47_right -DZMK_CONFIG="$PWD/config"
+west build -p -s zmk/app -d build/left  -b 'xiao_ble//zmk' -- -DSHIELD=poko_left  -DZMK_CONFIG="$PWD/config"
+west build -p -s zmk/app -d build/right -b 'xiao_ble//zmk' -- -DSHIELD=poko_right -DZMK_CONFIG="$PWD/config"
 ```
 
 `xiao_ble//zmk` の `//` はシェルに食われへんようクォートしとくこと。
@@ -83,7 +83,7 @@ XIAO nRF52840 のリセットボタンを**ダブルタップ** → UF2 ドラ�
 `low-profile-with-trackball` の QMK/Vial 版（`lp_tb/v0_1/keymaps/vial/keymap.c`）からの移植。
 BASE / LOWER / UPPER / FN / MOUSE / SCROLL の6レイヤ。
 
-- QMK の `set_auto_mouse_layer(_MOUSE)` → `rhyn47_right.overlay` の `&zip_temp_layer 4 400`
+- QMK の `set_auto_mouse_layer(_MOUSE)` → `poko_right.overlay` の `&zip_temp_layer 4 400`
 - QMK の `set_scroll_layer(_SCROLL)` → 同 `scroller` ノード（`zip_xy_to_scroll_mapper`）
 - QMK の `pointing_device_task_user()` の v/h 反転 → `zip_scroll_transform` の X/Y invert
 - FN レイヤに BLE 操作を追加（無線化に伴う新規）。プロファイル選択 `&bt BT_SEL 0-4` は **Q W E R T**、
@@ -100,7 +100,7 @@ BASE / LOWER / UPPER / FN / MOUSE / SCROLL の6レイヤ。
 - [x] 外部分圧の ADC 初期化成功（`bvd_init: AIN0 setup returned 0`）
 - [x] kscan が §3 のピン割当どおりに設定される
 - [x] **左右の BLE 接続成立**（`split_svc_pos_state_ccc: value 1` / `security_changed level 2`）
-- [x] ホスト（macOS）の Bluetooth に `rhyn47` が出る
+- [x] ホスト（macOS）の Bluetooth に `poko` が出る
 
 ## 実機で潰す項目
 

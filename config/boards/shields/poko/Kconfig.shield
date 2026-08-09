@@ -1,0 +1,5 @@
+config SHIELD_poko_LEFT
+    def_bool $(shields_list_contains,poko_left)
+
+config SHIELD_poko_RIGHT
+    def_bool $(shields_list_contains,poko_right)

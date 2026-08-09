@@ -11,20 +11,20 @@ include:
   # --- 常用（ログ無し）---
   # 左 = ペリフェラル（キーのみ）
   - board: xiao_ble//zmk
-    shield: rhyn47_left
+    shield: poko_left
   # 右 = セントラル（キー + トラックボール）
   - board: xiao_ble//zmk
-    shield: rhyn47_right
+    shield: poko_right
 
   # --- ブリングアップ用（USB シリアルにログが出る）---
   - board: xiao_ble//zmk
-    shield: rhyn47_left
+    shield: poko_left
     snippet: zmk-usb-logging
-    artifact-name: rhyn47_left-logging
+    artifact-name: poko_left-logging
   - board: xiao_ble//zmk
-    shield: rhyn47_right
+    shield: poko_right
     snippet: zmk-usb-logging
-    artifact-name: rhyn47_right-logging
+    artifact-name: poko_right-logging
 
   # --- ペアリングが壊れた時の設定リセット用 ---
   # 焼いたあと必ず本ファームを焼き直すこと

@@ -1,11 +1,11 @@
 /*
- * rhyn47 (split-wireless) 共通定義
+ * poko (split-wireless) 共通定義
  *
  * 左右で同一のドーター基板（XIAO nRF52840 Plus + 電源）を使うため、
  * kscan・matrix-transform・電池監視はここに1回だけ書く。
  * 左右差（col-offset / トラックボール）は *_left.overlay / *_right.overlay で。
  *
- * 設計書: wireless-rhyn-design.md §4, §7 / 実装ノート: zmk-implementation-notes.md §3-§5, §8
+ * 設計書: wireless-poko-design.md §4, §7 / 実装ノート: zmk-implementation-notes.md §3-§5, §8
  */
 
 #include <dt-bindings/zmk/matrix_transform.h>

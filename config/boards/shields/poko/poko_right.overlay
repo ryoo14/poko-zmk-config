@@ -1,11 +1,11 @@
 /*
- * rhyn47 右手（セントラル・トラックボールあり）
+ * poko 右手（セントラル・トラックボールあり）
  *
  * 右がセントラルなので zmk,input-split によるペリフェラル→セントラル転送は不要。
  * SPI + PMW3610 + input-listener をそのまま書く（実装ノート §7）。
  */
 
-#include "rhyn47.dtsi"
+#include "poko.dtsi"
 #include <input/processors.dtsi>
 #include <dt-bindings/zmk/input_transform.h>
 #include <zephyr/dt-bindings/input/input-event-codes.h>
@@ -52,7 +52,7 @@
     trackball: trackball@0 {
         status = "okay";
         /* ⚠ compatible / CONFIG 名は採用フォーク（badjeff/zmk-pmw3610-driver）の
-           README と必ず突き合わせる。west.yml・rhyn47_right.conf と3点セット。 */
+           README と必ず突き合わせる。west.yml・poko_right.conf と3点セット。 */
         compatible = "pixart,pmw3610-alt";
         reg = <0>;
         spi-max-frequency = <2000000>;   /* PMW3610 は 2MHz 上限 */
@@ -85,7 +85,7 @@
         input-processors = <&zip_temp_layer 4 400>;
 
         /*
-         * QMK 版の rhyn47_lptb_set_scroll_layer(_SCROLL) 相当。
+         * QMK 版の poko_lptb_set_scroll_layer(_SCROLL) 相当。
          * SCROLL レイヤ(5)の間は XY をスクロールに読み替える。
          * transform は pointing_device_task_user() の v/h 反転（ナチュラルスクロール）に対応。
          */
