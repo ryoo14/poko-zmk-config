@@ -3,7 +3,46 @@
  *
  * 右がセントラルなので zmk,input-split によるペリフェラル→セントラル転送は不要。
  * SPI + PMW3610 + input-listener をそのまま書く（実装ノート §7）。
+ *
+ * kscan は poko.dtsi の include より前に置く（poko.dtsi の chosen が &kscan0 を参照するため）。
  */
+
+#include <zephyr/dt-bindings/gpio/gpio.h>
+
+/ {
+    /*
+     * マトリクス 4行 × 6列（トラボ穴のぶん23キー）
+     *
+     * ピン割当は本番基板 right.kicad_pcb の netlist から採取（U1 = XIAO nRF52840 Plus）。
+     * 左基板とは割当が違う（ほぼ鏡像）ので、共通の poko.dtsi ではなくここに書いている。
+     *
+     * ダイオード向きは左と同じ col2row（COL が出力、ROW が入力）。
+     * 欠番の SW19 = ROW3/COL0 → col-offset=6 で RC(3,6) ＝ トラックボール位置。
+     */
+    kscan0: kscan {
+        compatible = "zmk,kscan-gpio-matrix";
+        diode-direction = "col2row";
+        wakeup-source;
+
+        /* col2row なので row = 入力（プルダウン） */
+        row-gpios
+            = <&gpio1 15 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW0 = D10 / P1.15
+            , <&gpio1 14 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW1 = D9  / P1.14
+            , <&gpio1 13 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW2 = D8  / P1.13
+            , <&gpio1 12 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW3 = D7  / P1.12
+            ;
+
+        /* col = 出力 */
+        col-gpios
+            = <&gpio0  5 GPIO_ACTIVE_HIGH>   // COL0 = D5  / P0.05
+            , <&gpio0  4 GPIO_ACTIVE_HIGH>   // COL1 = D4  / P0.04
+            , <&gpio0 29 GPIO_ACTIVE_HIGH>   // COL2 = D3  / P0.29
+            , <&gpio0 28 GPIO_ACTIVE_HIGH>   // COL3 = D2  / P0.28
+            , <&gpio0  3 GPIO_ACTIVE_HIGH>   // COL4 = D1  / P0.03
+            , <&gpio0  2 GPIO_ACTIVE_HIGH>   // COL5 = D0  / P0.02
+            ;
+    };
+};
 
 #include "poko.dtsi"
 #include <input/processors.dtsi>
@@ -16,33 +55,30 @@
 };
 
 /*
- * 3線 SPI: PMW3610 の SDIO は双方向1本なので MOSI/MISO を同じ P1.05 に割り当てる。
+ * 3線 SPI: PMW3610 の SDIO は双方向1本なので MOSI/MISO を同じピンに割り当てる。
  *
  * ⚠ nRF52840 は SPIM0 と TWIM0 が周辺 ID を共有する。Zephyr の base xiao_ble.dts で
  *   &i2c0 が有効だとビルドが落ちるので、その場合は &spi0 → &spi3 に置換
  *   （SPIM3 は TWI と共有しない。pinctrl はどのピンにもルーティング可）。
- */
-/*
- * ⚠ SCLK / nCS は設計書 §4 の表と逆。実基板の実配線に合わせてある（poko.dtsi の
- *    kscan と同じ、FFC のピン反転（設計書 §12.5）の巻き添え）。
- *    導通テスト（2026-08-12・右）: SCLK→P1.03 / nCS→P1.07 で入れ替わり。
- *    SDIO(P1.05) と MOTION(P0.15) は設計どおりで無事。
- *    基板を改版して直したら、ここも元に戻すこと。
+ *
+ * ピンは本番基板 right.kicad_pcb の netlist から採取:
+ *   SCLK = P1.05 / SDIO = P1.03 / nCS = P1.07 / MOTION = P1.11 (D6)
+ * 試作基板とは SCLK と SDIO が逆、MOTION も P0.15 から移動している。
  */
 &pinctrl {
     spi0_default: spi0_default {
         group1 {
-            psels = <NRF_PSEL(SPIM_SCK,  1, 3)>,   // SCLK = P1.03（設計は P1.07）
-                    <NRF_PSEL(SPIM_MOSI, 1, 5)>,   // SDIO = P1.05
-                    <NRF_PSEL(SPIM_MISO, 1, 5)>;   //  〃   （同一ピン）
+            psels = <NRF_PSEL(SPIM_SCK,  1, 5)>,   // SCLK = P1.05
+                    <NRF_PSEL(SPIM_MOSI, 1, 3)>,   // SDIO = P1.03
+                    <NRF_PSEL(SPIM_MISO, 1, 3)>;   //  〃   （同一ピン）
         };
     };
 
     spi0_sleep: spi0_sleep {
         group1 {
-            psels = <NRF_PSEL(SPIM_SCK,  1, 3)>,
-                    <NRF_PSEL(SPIM_MOSI, 1, 5)>,
-                    <NRF_PSEL(SPIM_MISO, 1, 5)>;
+            psels = <NRF_PSEL(SPIM_SCK,  1, 5)>,
+                    <NRF_PSEL(SPIM_MOSI, 1, 3)>,
+                    <NRF_PSEL(SPIM_MISO, 1, 3)>;
             low-power-enable;
         };
     };
@@ -54,7 +90,7 @@
     pinctrl-0 = <&spi0_default>;
     pinctrl-1 = <&spi0_sleep>;
     pinctrl-names = "default", "sleep";
-    cs-gpios = <&gpio1 7 GPIO_ACTIVE_LOW>;   // nCS = P1.07（設計は P1.03）
+    cs-gpios = <&gpio1 7 GPIO_ACTIVE_LOW>;   // nCS = P1.07
 
     trackball: trackball@0 {
         status = "okay";
@@ -64,8 +100,8 @@
         reg = <0>;
         spi-max-frequency = <2000000>;   /* PMW3610 は 2MHz 上限 */
 
-        /* MOTION = P0.15。NRESET は外付け10kで3.3Vプルアップ固定なので GPIO 不要 */
-        irq-gpios = <&gpio0 15 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+        /* MOTION = P1.11 / D6。NRESET は R12(10k) で 3V3 プルアップ固定なので GPIO 不要 */
+        irq-gpios = <&gpio1 11 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 
         cpi = <600>;   /* 初期値。実機で調整 */
 

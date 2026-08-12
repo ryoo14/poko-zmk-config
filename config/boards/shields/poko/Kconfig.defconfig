@@ -1,14 +1,14 @@
 if SHIELD_poko_LEFT
 
 config ZMK_KEYBOARD_NAME
-    default "poko"
+    default "POKO"
 
 endif
 
 if SHIELD_poko_RIGHT
 
 config ZMK_KEYBOARD_NAME
-    default "poko"
+    default "POKO"
 
 # 右手をセントラル（PC と BLE 接続する親）にする。
 # トラボが右手にあるので、ポインタの高頻度データを分割リンクに流さずに済む。

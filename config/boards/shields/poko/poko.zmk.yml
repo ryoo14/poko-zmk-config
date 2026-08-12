@@ -1,6 +1,6 @@
 file_format: "1"
 id: poko
-name: poko (split-wireless)
+name: POKO (split-wireless)
 type: shield
 url: https://github.com/ryoo14/poko
 requires: [xiao_ble]
