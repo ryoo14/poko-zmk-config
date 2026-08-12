@@ -30,7 +30,13 @@
      */
     kscan0: kscan {
         compatible = "zmk,kscan-gpio-matrix";
-        diode-direction = "col2row";
+        /*
+         * ⚠ 実基板のダイオードは ROW→COL に導通する（設計書 §4 の想定と逆）。
+         *   根拠: ピン割当が転置していた時期に、ZMK が ROW 線を出力・COL 線を入力
+         *   として駆動した組み合わせだけがキー入力として成立していた（2026-08-12）。
+         *   → row-gpios が出力 / col-gpios が入力（プルダウン）になる。
+         */
+        diode-direction = "row2col";
         wakeup-source;
 
         /*
@@ -54,20 +60,21 @@
          * D0 (P0.02 / AIN0) には何も来ていないので電池監視も無傷。
          * 基板を改版して設計どおりに直したら、ここも元に戻すこと。
          */
+        /* row2col なので row = 出力 / col = 入力（プルダウン） */
         row-gpios
-            = <&gpio1 11 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW0 = D6 / P1.11
-            , <&gpio0  5 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW1 = D5 / P0.05
-            , <&gpio0  4 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW2 = D4 / P0.04
-            , <&gpio0 29 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW3 = D3 / P0.29
+            = <&gpio1 11 GPIO_ACTIVE_HIGH>   // ROW0 = D6 / P1.11
+            , <&gpio0  5 GPIO_ACTIVE_HIGH>   // ROW1 = D5 / P0.05
+            , <&gpio0  4 GPIO_ACTIVE_HIGH>   // ROW2 = D4 / P0.04
+            , <&gpio0 29 GPIO_ACTIVE_HIGH>   // ROW3 = D3 / P0.29
             ;
 
         col-gpios
-            = <&gpio0 28 GPIO_ACTIVE_HIGH>   // COL0 = D2  / P0.28
-            , <&gpio0  3 GPIO_ACTIVE_HIGH>   // COL1 = D1  / P0.03
-            , <&gpio1 12 GPIO_ACTIVE_HIGH>   // COL2 = D7  / P1.12
-            , <&gpio1 13 GPIO_ACTIVE_HIGH>   // COL3 = D8  / P1.13
-            , <&gpio1 14 GPIO_ACTIVE_HIGH>   // COL4 = D9  / P1.14
-            , <&gpio1 15 GPIO_ACTIVE_HIGH>   // COL5 = D10 / P1.15
+            = <&gpio0 28 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL0 = D2  / P0.28
+            , <&gpio0  3 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL1 = D1  / P0.03
+            , <&gpio1 12 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL2 = D7  / P1.12
+            , <&gpio1 13 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL3 = D8  / P1.13
+            , <&gpio1 14 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL4 = D9  / P1.14
+            , <&gpio1 15 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL5 = D10 / P1.15
             ;
     };
 
