@@ -33,16 +33,37 @@
         diode-direction = "col2row";
         wakeup-source;
 
+        /*
+         * ⚠ ピン割当は設計書 §4 の表と一致しない。実基板の実配線に合わせてある。
+         *
+         * 導通テスト（2026-08-12・右メイン基板）で、FFC を通ったあと
+         * D1〜D6 に乗る6本（ROW0-3 / COL0 / COL1）が D6→D1 の逆順で
+         * 着地していることが判明した。COL2〜COL5（D7〜D10）は設計どおり。
+         * 原因は設計書 §12.5「⚠ FFC のピン反転」が吸収しきれていないこと。
+         *
+         *   線     設計    実配線
+         *   ROW0   D1  →  D6 (P1.11)     COL2   D7  →  D7 (P1.12)  変化なし
+         *   ROW1   D2  →  D5 (P0.05)     COL3   D8  →  D8 (P1.13)  変化なし
+         *   ROW2   D3  →  D4 (P0.04)     COL4   D9  →  D9 (P1.14)  変化なし
+         *   ROW3   D4  →  D3 (P0.29)     COL5   D10 →  D10(P1.15)  変化なし
+         *   COL0   D5  →  D2 (P0.28)
+         *   COL1   D6  →  D1 (P0.03)
+         *
+         * ROW 線 = row-gpios / COL 線 = col-gpios という役割は保っているので
+         * diode-direction と matrix-transform は変更不要。
+         * D0 (P0.02 / AIN0) には何も来ていないので電池監視も無傷。
+         * 基板を改版して設計どおりに直したら、ここも元に戻すこと。
+         */
         row-gpios
-            = <&gpio0  3 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW0 = D1 / P0.03
-            , <&gpio0 28 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW1 = D2 / P0.28
-            , <&gpio0 29 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW2 = D3 / P0.29
-            , <&gpio0  4 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW3 = D4 / P0.04
+            = <&gpio1 11 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW0 = D6 / P1.11
+            , <&gpio0  5 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW1 = D5 / P0.05
+            , <&gpio0  4 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW2 = D4 / P0.04
+            , <&gpio0 29 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW3 = D3 / P0.29
             ;
 
         col-gpios
-            = <&gpio0  5 GPIO_ACTIVE_HIGH>   // COL0 = D5  / P0.05
-            , <&gpio1 11 GPIO_ACTIVE_HIGH>   // COL1 = D6  / P1.11
+            = <&gpio0 28 GPIO_ACTIVE_HIGH>   // COL0 = D2  / P0.28
+            , <&gpio0  3 GPIO_ACTIVE_HIGH>   // COL1 = D1  / P0.03
             , <&gpio1 12 GPIO_ACTIVE_HIGH>   // COL2 = D7  / P1.12
             , <&gpio1 13 GPIO_ACTIVE_HIGH>   // COL3 = D8  / P1.13
             , <&gpio1 14 GPIO_ACTIVE_HIGH>   // COL4 = D9  / P1.14
