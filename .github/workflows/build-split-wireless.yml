@@ -4,6 +4,8 @@ on: [push, pull_request, workflow_dispatch]
 
 jobs:
   build:
-    uses: zmkfirmware/zmk/.github/workflows/build-user-config.yml@main
+    # west.yml で固定した zmk と同じ commit に揃える。
+    # @main のままだと Merge Output Artifacts の失敗など上流の変更をそのまま踏む。
+    uses: zmkfirmware/zmk/.github/workflows/build-user-config.yml@6e2ef41e022d555b10f116e395832913f71717b3
     with:
       archive_name: poko-split-wireless

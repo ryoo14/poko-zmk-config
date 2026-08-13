@@ -7,13 +7,18 @@ manifest:
   projects:
     - name: zmk
       remote: zmkfirmware
-      revision: main
+      # ⚠ タグ固定できない。最新リリース v0.3.0 (2025-08-01) は board が
+      #   HWMv1 の seeeduino_xiao_ble で、build.yaml の xiao_ble//zmk が通らない。
+      #   HWMv2 対応は main にしか入っていないので commit で固定する。
+      #   v0.4 が出たらタグに移す。
+      revision: 6e2ef41e022d555b10f116e395832913f71717b3   # main @ 2026-08-11
       import: app/west.yml
     # PMW3610 ドライバ。compatible / CONFIG 名は README で最終照合すること
     # （notes §7-1, §14）。別フォークに替えるならここと
     # poko_right.overlay / poko_right.conf の3箇所を揃える。
     - name: zmk-pmw3610-driver
       remote: badjeff
-      revision: main
+      # タグが打たれていないので commit で固定
+      revision: 44b4a76b74d293a93cec4ccb7e04cb8d29c10f93   # main @ 2026-04-16
   self:
     path: config
