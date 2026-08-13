@@ -67,11 +67,11 @@
         /* MOTION = P0.15。NRESET は外付け10kで3.3Vプルアップ固定なので GPIO 不要 */
         irq-gpios = <&gpio0 15 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 
-        cpi = <600>;   /* 初期値。実機で調整 */
+        cpi = <400>;   /* 600 は速すぎたので落とした。400 が妥当かは未検証 */
 
-        /* 向きは 14mm ボール＋実機の取り付け角で決まる。実機で確認して有効化 */
+        /* 試作基板で左右反転を確認。invert-x で直るかは未検証 */
         // swap-xy;
-        // invert-x;
+        invert-x;
         // invert-y;
 
         evt-type = <INPUT_EV_REL>;
