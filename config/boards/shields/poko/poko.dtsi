@@ -28,7 +28,7 @@
       display-name = "Default";
 
       kscan = <&kscan0>;
-      transform = <&matrix_transform0>;
+      transform = <&default_transform>;
 
       keys  //                     w   h    x    y     rot    rx    ry
       = <&key_physical_attrs 100 100    0    0       0     0     0>
@@ -146,7 +146,7 @@
      *
      * バインド順は下の map の並び順そのまま。row0=12 / row1=12 / row2=12 / row3=11。
      */
-    matrix_transform0: keymap_transform_0 {
+    default_transform: keymap_transform_0 {
         compatible = "zmk,matrix-transform";
         columns = <12>;
         rows = <4>;
