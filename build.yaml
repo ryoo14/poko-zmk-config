@@ -29,7 +29,6 @@ include:
       - studio-rpc-usb-uart
       - zmk-usb-logging
     artifact-name: poko_right-logging
-    cmake-args: -DCONFIG_ZMK_STUDIO=y
 
   # --- ペアリングが壊れた時の設定リセット用 ---
   # 焼いたあと必ず本ファームを焼き直すこと
