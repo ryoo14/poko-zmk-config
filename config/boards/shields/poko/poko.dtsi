@@ -83,64 +83,6 @@
     };
 
     /*
-     * マトリクス 4行 × 6列（片側24キー）
-     * ダイオードは全キー同じ向き = col2row。外部プルアップ抵抗なし（内蔵プル使用）。
-     *
-     * ⚠ col2row では ROW=入力かつ内蔵プル"ダウン" / COL=出力 ACTIVE_HIGH になる
-     *   （設計書 §12.7 の「内蔵プルアップ」は「外部抵抗なし」の意で読むこと）。
-     *   実基板のダイオード向きが逆だったら row2col + PULL_UP / ACTIVE_LOW に変更。
-     */
-    kscan0: kscan {
-        compatible = "zmk,kscan-gpio-matrix";
-        /*
-         * ⚠ 実基板のダイオードは ROW→COL に導通する（設計書 §4 の想定と逆）。
-         *   根拠: ピン割当が転置していた時期に、ZMK が ROW 線を出力・COL 線を入力
-         *   として駆動した組み合わせだけがキー入力として成立していた（2026-08-12）。
-         *   → row-gpios が出力 / col-gpios が入力（プルダウン）になる。
-         */
-        diode-direction = "row2col";
-        wakeup-source;
-
-        /*
-         * ⚠ ピン割当は設計書 §4 の表と一致しない。実基板の実配線に合わせてある。
-         *
-         * 導通テスト（2026-08-12・右メイン基板）で、FFC を通ったあと
-         * D1〜D6 に乗る6本（ROW0-3 / COL0 / COL1）が D6→D1 の逆順で
-         * 着地していることが判明した。COL2〜COL5（D7〜D10）は設計どおり。
-         * 原因は設計書 §12.5「⚠ FFC のピン反転」が吸収しきれていないこと。
-         *
-         *   線     設計    実配線
-         *   ROW0   D1  →  D6 (P1.11)     COL2   D7  →  D7 (P1.12)  変化なし
-         *   ROW1   D2  →  D5 (P0.05)     COL3   D8  →  D8 (P1.13)  変化なし
-         *   ROW2   D3  →  D4 (P0.04)     COL4   D9  →  D9 (P1.14)  変化なし
-         *   ROW3   D4  →  D3 (P0.29)     COL5   D10 →  D10(P1.15)  変化なし
-         *   COL0   D5  →  D2 (P0.28)
-         *   COL1   D6  →  D1 (P0.03)
-         *
-         * ROW 線 = row-gpios / COL 線 = col-gpios という役割は保っているので
-         * diode-direction と matrix-transform は変更不要。
-         * D0 (P0.02 / AIN0) には何も来ていないので電池監視も無傷。
-         * 基板を改版して設計どおりに直したら、ここも元に戻すこと。
-         */
-        /* row2col なので row = 出力 / col = 入力（プルダウン） */
-        row-gpios
-            = <&gpio1 11 GPIO_ACTIVE_HIGH>   // ROW0 = D6 / P1.11
-            , <&gpio0  5 GPIO_ACTIVE_HIGH>   // ROW1 = D5 / P0.05
-            , <&gpio0  4 GPIO_ACTIVE_HIGH>   // ROW2 = D4 / P0.04
-            , <&gpio0 29 GPIO_ACTIVE_HIGH>   // ROW3 = D3 / P0.29
-            ;
-
-        col-gpios
-            = <&gpio0 28 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL0 = D2  / P0.28
-            , <&gpio0  3 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL1 = D1  / P0.03
-            , <&gpio1 12 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL2 = D7  / P1.12
-            , <&gpio1 13 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL3 = D8  / P1.13
-            , <&gpio1 14 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL4 = D9  / P1.14
-            , <&gpio1 15 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL5 = D10 / P1.15
-            ;
-    };
-
-    /*
      * 論理グリッド 4行 × 12列。左=列0-5 / 右=列6-11（右 overlay で col-offset=6）。
      * 右手の最下段・最内側 RC(3,6) がトラックボール位置なので map から省く。
      *   → 総キー数 47（左24 + 右23）。QMK 版 keymap.c の row3 index6 = KC_NO と一致。
