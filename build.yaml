@@ -25,9 +25,7 @@ include:
     artifact-name: poko_left-logging
   - board: xiao_ble//zmk
     shield: poko_right
-    snippet: 
-      - studio-rpc-usb-uart
-      - zmk-usb-logging
+    snippet: zmk-usb-logging
     artifact-name: poko_right-logging
 
   # --- ペアリングが壊れた時の設定リセット用 ---
