@@ -10,11 +10,134 @@
  */
 
 #include <dt-bindings/zmk/matrix_transform.h>
+#include <zephyr/dt-bindings/gpio/gpio.h>
+#include <zephyr/dt-bindings/adc/adc.h>
+#include <zephyr/dt-bindings/adc/nrf-adc.h>
+#include <physical_layouts.dtsi>
 
 / {
     chosen {
         zmk,kscan = &kscan0;
-        zmk,matrix-transform = &default_transform;
+        /*zmk,matrix-transform = &default_transform;
+        */
+        zmk,physical-layout = &poko_physical_layout;
+        zmk,battery = &vbatt_ext;
+    };
+
+    poko_physical_layout: poko_physical_layout {
+      compatible = "zmk,physical-layout";
+      display-name = "Default";
+
+      /* kscan = <&kscan0>; */
+      transform = <&default_transform>;
+
+      keys  //                     w   h    x    y     rot    rx    ry
+      = <&key_physical_attrs 100 100    0    0       0     0     0>
+      , <&key_physical_attrs 100 100  100    0       0     0     0>
+      , <&key_physical_attrs 100 100  200    0       0     0     0>
+      , <&key_physical_attrs 100 100  300    0       0     0     0>
+      , <&key_physical_attrs 100 100  400    0       0     0     0>
+      , <&key_physical_attrs 100 100  500    0       0     0     0>
+      , <&key_physical_attrs 100 100  700    0       0     0     0>
+      , <&key_physical_attrs 100 100  800    0       0     0     0>
+      , <&key_physical_attrs 100 100  900    0       0     0     0>
+      , <&key_physical_attrs 100 100 1000    0       0     0     0>
+      , <&key_physical_attrs 100 100 1100    0       0     0     0>
+      , <&key_physical_attrs 100 100 1200    0       0     0     0>
+      , <&key_physical_attrs 100 100    0  100       0     0     0>
+      , <&key_physical_attrs 100 100  100  100       0     0     0>
+      , <&key_physical_attrs 100 100  200  100       0     0     0>
+      , <&key_physical_attrs 100 100  300  100       0     0     0>
+      , <&key_physical_attrs 100 100  400  100       0     0     0>
+      , <&key_physical_attrs 100 100  500  100       0     0     0>
+      , <&key_physical_attrs 100 100  700  100       0     0     0>
+      , <&key_physical_attrs 100 100  800  100       0     0     0>
+      , <&key_physical_attrs 100 100  900  100       0     0     0>
+      , <&key_physical_attrs 100 100 1000  100       0     0     0>
+      , <&key_physical_attrs 100 100 1100  100       0     0     0>
+      , <&key_physical_attrs 100 100 1200  100       0     0     0>
+      , <&key_physical_attrs 100 100    0  200       0     0     0>
+      , <&key_physical_attrs 100 100  100  200       0     0     0>
+      , <&key_physical_attrs 100 100  200  200       0     0     0>
+      , <&key_physical_attrs 100 100  300  200       0     0     0>
+      , <&key_physical_attrs 100 100  400  200       0     0     0>
+      , <&key_physical_attrs 100 100  500  200       0     0     0>
+      , <&key_physical_attrs 100 100  700  200       0     0     0>
+      , <&key_physical_attrs 100 100  800  200       0     0     0>
+      , <&key_physical_attrs 100 100  900  200       0     0     0>
+      , <&key_physical_attrs 100 100 1000  200       0     0     0>
+      , <&key_physical_attrs 100 100 1100  200       0     0     0>
+      , <&key_physical_attrs 100 100 1200  200       0     0     0>
+      , <&key_physical_attrs 100 100    0  300       0     0     0>
+      , <&key_physical_attrs 100 100  100  300       0     0     0>
+      , <&key_physical_attrs 100 100  200  300       0     0     0>
+      , <&key_physical_attrs 100 100  300  300       0     0     0>
+      , <&key_physical_attrs 100 100  400  300       0     0     0>
+      , <&key_physical_attrs 100 100  500  300       0     0     0>
+      , <&key_physical_attrs 100 100  800  300       0     0     0>
+      , <&key_physical_attrs 100 100  900  300       0     0     0>
+      , <&key_physical_attrs 100 100 1000  300       0     0     0>
+      , <&key_physical_attrs 100 100 1100  300       0     0     0>
+      , <&key_physical_attrs 100 100 1200  300       0     0     0>
+      ;
+    };
+
+    /*
+     * マトリクス 4行 × 6列（片側24キー）
+     * ダイオードは全キー同じ向き = col2row。外部プルアップ抵抗なし（内蔵プル使用）。
+     *
+     * ⚠ col2row では ROW=入力かつ内蔵プル"ダウン" / COL=出力 ACTIVE_HIGH になる
+     *   （設計書 §12.7 の「内蔵プルアップ」は「外部抵抗なし」の意で読むこと）。
+     *   実基板のダイオード向きが逆だったら row2col + PULL_UP / ACTIVE_LOW に変更。
+     */
+    kscan0: kscan {
+        compatible = "zmk,kscan-gpio-matrix";
+        /*
+         * ⚠ 実基板のダイオードは ROW→COL に導通する（設計書 §4 の想定と逆）。
+         *   根拠: ピン割当が転置していた時期に、ZMK が ROW 線を出力・COL 線を入力
+         *   として駆動した組み合わせだけがキー入力として成立していた（2026-08-12）。
+         *   → row-gpios が出力 / col-gpios が入力（プルダウン）になる。
+         */
+        diode-direction = "row2col";
+        wakeup-source;
+
+        /*
+         * ⚠ ピン割当は設計書 §4 の表と一致しない。実基板の実配線に合わせてある。
+         *
+         * 導通テスト（2026-08-12・右メイン基板）で、FFC を通ったあと
+         * D1〜D6 に乗る6本（ROW0-3 / COL0 / COL1）が D6→D1 の逆順で
+         * 着地していることが判明した。COL2〜COL5（D7〜D10）は設計どおり。
+         * 原因は設計書 §12.5「⚠ FFC のピン反転」が吸収しきれていないこと。
+         *
+         *   線     設計    実配線
+         *   ROW0   D1  →  D6 (P1.11)     COL2   D7  →  D7 (P1.12)  変化なし
+         *   ROW1   D2  →  D5 (P0.05)     COL3   D8  →  D8 (P1.13)  変化なし
+         *   ROW2   D3  →  D4 (P0.04)     COL4   D9  →  D9 (P1.14)  変化なし
+         *   ROW3   D4  →  D3 (P0.29)     COL5   D10 →  D10(P1.15)  変化なし
+         *   COL0   D5  →  D2 (P0.28)
+         *   COL1   D6  →  D1 (P0.03)
+         *
+         * ROW 線 = row-gpios / COL 線 = col-gpios という役割は保っているので
+         * diode-direction と matrix-transform は変更不要。
+         * D0 (P0.02 / AIN0) には何も来ていないので電池監視も無傷。
+         * 基板を改版して設計どおりに直したら、ここも元に戻すこと。
+         */
+        /* row2col なので row = 出力 / col = 入力（プルダウン） */
+        row-gpios
+            = <&gpio1 11 GPIO_ACTIVE_HIGH>   // ROW0 = D6 / P1.11
+            , <&gpio0  5 GPIO_ACTIVE_HIGH>   // ROW1 = D5 / P0.05
+            , <&gpio0  4 GPIO_ACTIVE_HIGH>   // ROW2 = D4 / P0.04
+            , <&gpio0 29 GPIO_ACTIVE_HIGH>   // ROW3 = D3 / P0.29
+            ;
+
+        col-gpios
+            = <&gpio0 28 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL0 = D2  / P0.28
+            , <&gpio0  3 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL1 = D1  / P0.03
+            , <&gpio1 12 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL2 = D7  / P1.12
+            , <&gpio1 13 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL3 = D8  / P1.13
+            , <&gpio1 14 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL4 = D9  / P1.14
+            , <&gpio1 15 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL5 = D10 / P1.15
+            ;
     };
 
     /*
