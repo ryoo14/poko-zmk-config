@@ -21,7 +21,7 @@
         /*zmk,matrix-transform = &default_transform;
         */
         zmk,physical-layout = &poko_physical_layout;
-        zmk,battery = &vbatt_ext;
+        zmk,battery = &vbatt;
     };
 
     poko_physical_layout: poko_physical_layout {
