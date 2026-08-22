@@ -13,10 +13,11 @@
     /*
      * マトリクス 4行 × 6列（トラボ穴のぶん23キー）
      *
-     * ピン割当は本番基板 right.kicad_pcb の netlist から採取（U1 = XIAO nRF52840 Plus）。
-     * 左基板とは割当が違う（ほぼ鏡像）ので、共通の poko.dtsi ではなくここに書いている。
+     * ⚠ いまは【試作基板】のピン割当（v0.1-proto と同一・左右共通）。
+     *   本番基板 right.kicad_pcb の割当は下のコメントアウト側。戻すときは
+     *   ピン番号だけでなく diode-direction と GPIO フラグも必ずセットで戻すこと。
      *
-     * ダイオード向きは左と同じ col2row（COL が出力、ROW が入力）。
+     * ダイオード向きは左と同じ。試作 = row2col / 本番 = col2row。
      * 欠番の SW19 = ROW3/COL0 → col-offset=6 で RC(3,6) ＝ トラックボール位置。
      */
     kscan0: kscan {
@@ -24,36 +25,37 @@
         diode-direction = "row2col";
         wakeup-source;
 
-        /* col2row なので row = 入力（プルダウン） */
+        /* row2col なので row = 出力 / col = 入力（プルダウン） */
+        /* 本番基板（col2row）用:
         row-gpios
-            /*
             = <&gpio1 15 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW0 = D10 / P1.15
             , <&gpio1 14 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW1 = D9  / P1.14
             , <&gpio1 13 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW2 = D8  / P1.13
             , <&gpio1 12 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW3 = D7  / P1.12
-            */
-            = <&gpio1 11 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW0 = D10 / P1.15
-            , <&gpio0  5 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW1 = D9  / P1.14
-            , <&gpio0  4 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW2 = D8  / P1.13
-            , <&gpio0 29 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW3 = D7  / P1.12
             ;
-
-        /* col = 出力 */
         col-gpios
-            /*
             = <&gpio0  5 GPIO_ACTIVE_HIGH>   // COL0 = D5  / P0.05
             , <&gpio0  4 GPIO_ACTIVE_HIGH>   // COL1 = D4  / P0.04
             , <&gpio0 29 GPIO_ACTIVE_HIGH>   // COL2 = D3  / P0.29
             , <&gpio0 28 GPIO_ACTIVE_HIGH>   // COL3 = D2  / P0.28
             , <&gpio0  3 GPIO_ACTIVE_HIGH>   // COL4 = D1  / P0.03
             , <&gpio0  2 GPIO_ACTIVE_HIGH>   // COL5 = D0  / P0.02
-            */
-            = <&gpio0 28 GPIO_ACTIVE_HIGH>   // COL0 = D5  / P0.05
-            , <&gpio0  3 GPIO_ACTIVE_HIGH>   // COL1 = D4  / P0.04
-            , <&gpio1 12 GPIO_ACTIVE_HIGH>   // COL2 = D3  / P0.29
-            , <&gpio1 13 GPIO_ACTIVE_HIGH>   // COL3 = D2  / P0.28
-            , <&gpio1 14 GPIO_ACTIVE_HIGH>   // COL4 = D1  / P0.03
-            , <&gpio1 15 GPIO_ACTIVE_HIGH>   // COL5 = D0  / P0.02
+            ;
+        */
+        row-gpios
+            = <&gpio1 11 GPIO_ACTIVE_HIGH>   // ROW0 = D6 / P1.11
+            , <&gpio0  5 GPIO_ACTIVE_HIGH>   // ROW1 = D5 / P0.05
+            , <&gpio0  4 GPIO_ACTIVE_HIGH>   // ROW2 = D4 / P0.04
+            , <&gpio0 29 GPIO_ACTIVE_HIGH>   // ROW3 = D3 / P0.29
+            ;
+
+        col-gpios
+            = <&gpio0 28 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL0 = D2  / P0.28
+            , <&gpio0  3 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL1 = D1  / P0.03
+            , <&gpio1 12 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL2 = D7  / P1.12
+            , <&gpio1 13 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL3 = D8  / P1.13
+            , <&gpio1 14 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL4 = D9  / P1.14
+            , <&gpio1 15 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL5 = D10 / P1.15
             ;
     };
 };
@@ -75,9 +77,10 @@
  *   &i2c0 が有効だとビルドが落ちるので、その場合は &spi0 → &spi3 に置換
  *   （SPIM3 は TWI と共有しない。pinctrl はどのピンにもルーティング可）。
  *
- * ピンは本番基板 right.kicad_pcb の netlist から採取:
- *   SCLK = P1.05 / SDIO = P1.03 / nCS = P1.07 / MOTION = P1.11 (D6)
- * 試作基板とは SCLK と SDIO が逆、MOTION も P0.15 から移動している。
+ * ⚠ いまは【試作基板】の配線:
+ *     SCLK = P1.03 / SDIO = P1.05 / nCS = P1.07 / MOTION = P0.15
+ *   本番基板 right.kicad_pcb は SCLK と SDIO が逆、MOTION も P1.11 (D6) に移動
+ *   （コメントアウト側）。
  */
 &pinctrl {
     spi0_default: spi0_default {
@@ -87,8 +90,8 @@
                     <NRF_PSEL(SPIM_MOSI, 1, 3)>,   // SDIO = P1.03
                     <NRF_PSEL(SPIM_MISO, 1, 3)>;   //  〃   （同一ピン）
             */
-            psels = <NRF_PSEL(SPIM_SCK,  1, 3)>,   // SCLK = P1.05
-                    <NRF_PSEL(SPIM_MOSI, 1, 5)>,   // SDIO = P1.03
+            psels = <NRF_PSEL(SPIM_SCK,  1, 3)>,   // SCLK = P1.03
+                    <NRF_PSEL(SPIM_MOSI, 1, 5)>,   // SDIO = P1.05
                     <NRF_PSEL(SPIM_MISO, 1, 5)>;   //  〃   （同一ピン）
         };
     };
@@ -124,7 +127,7 @@
         reg = <0>;
         spi-max-frequency = <2000000>;   /* PMW3610 は 2MHz 上限 */
 
-        /* MOTION = P1.11 / D6。NRESET は R12(10k) で 3V3 プルアップ固定なので GPIO 不要 */
+        /* MOTION = P0.15（試作）。NRESET は R12(10k) で 3V3 プルアップ固定なので GPIO 不要 */
         /*irq-gpios = <&gpio1 11 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>; */
         irq-gpios = <&gpio0 15 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 
