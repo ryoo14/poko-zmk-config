@@ -24,7 +24,7 @@
      */
     kscan0: kscan {
         compatible = "zmk,kscan-gpio-matrix";
-        diode-direction = "col2row";
+        diode-direction = "row2col";
         wakeup-source;
 
         /* col2row なので row = 入力（プルダウン） */

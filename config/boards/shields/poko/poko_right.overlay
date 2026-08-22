@@ -21,7 +21,7 @@
      */
     kscan0: kscan {
         compatible = "zmk,kscan-gpio-matrix";
-        diode-direction = "col2row";
+        diode-direction = "row2col";
         wakeup-source;
 
         /* col2row なので row = 入力（プルダウン） */
@@ -126,7 +126,7 @@
 
         /* MOTION = P1.11 / D6。NRESET は R12(10k) で 3V3 プルアップ固定なので GPIO 不要 */
         /*irq-gpios = <&gpio1 11 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>; */
-        irq-gpios = <&gpio1 15 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+        irq-gpios = <&gpio0 15 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 
         cpi = <400>;   /* 600 は速すぎたので落とした。400 が妥当かは未検証 */
 
