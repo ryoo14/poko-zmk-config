@@ -26,20 +26,34 @@
 
         /* col2row なので row = 入力（プルダウン） */
         row-gpios
+            /*
             = <&gpio1 15 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW0 = D10 / P1.15
             , <&gpio1 14 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW1 = D9  / P1.14
             , <&gpio1 13 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW2 = D8  / P1.13
             , <&gpio1 12 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW3 = D7  / P1.12
+            */
+            = <&gpio1 11 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW0 = D10 / P1.15
+            , <&gpio0  5 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW1 = D9  / P1.14
+            , <&gpio0  4 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW2 = D8  / P1.13
+            , <&gpio0 29 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW3 = D7  / P1.12
             ;
 
         /* col = 出力 */
         col-gpios
+            /*
             = <&gpio0  5 GPIO_ACTIVE_HIGH>   // COL0 = D5  / P0.05
             , <&gpio0  4 GPIO_ACTIVE_HIGH>   // COL1 = D4  / P0.04
             , <&gpio0 29 GPIO_ACTIVE_HIGH>   // COL2 = D3  / P0.29
             , <&gpio0 28 GPIO_ACTIVE_HIGH>   // COL3 = D2  / P0.28
             , <&gpio0  3 GPIO_ACTIVE_HIGH>   // COL4 = D1  / P0.03
             , <&gpio0  2 GPIO_ACTIVE_HIGH>   // COL5 = D0  / P0.02
+            */
+            = <&gpio0 28 GPIO_ACTIVE_HIGH>   // COL0 = D5  / P0.05
+            , <&gpio0  3 GPIO_ACTIVE_HIGH>   // COL1 = D4  / P0.04
+            , <&gpio1 12 GPIO_ACTIVE_HIGH>   // COL2 = D3  / P0.29
+            , <&gpio1 13 GPIO_ACTIVE_HIGH>   // COL3 = D2  / P0.28
+            , <&gpio1 14 GPIO_ACTIVE_HIGH>   // COL4 = D1  / P0.03
+            , <&gpio1 15 GPIO_ACTIVE_HIGH>   // COL5 = D0  / P0.02
             ;
     };
 };
@@ -68,17 +82,27 @@
 &pinctrl {
     spi0_default: spi0_default {
         group1 {
+            /*
             psels = <NRF_PSEL(SPIM_SCK,  1, 5)>,   // SCLK = P1.05
                     <NRF_PSEL(SPIM_MOSI, 1, 3)>,   // SDIO = P1.03
                     <NRF_PSEL(SPIM_MISO, 1, 3)>;   //  〃   （同一ピン）
+            */
+            psels = <NRF_PSEL(SPIM_SCK,  1, 3)>,   // SCLK = P1.05
+                    <NRF_PSEL(SPIM_MOSI, 1, 5)>,   // SDIO = P1.03
+                    <NRF_PSEL(SPIM_MISO, 1, 5)>;   //  〃   （同一ピン）
         };
     };
 
     spi0_sleep: spi0_sleep {
         group1 {
+            /*
             psels = <NRF_PSEL(SPIM_SCK,  1, 5)>,
                     <NRF_PSEL(SPIM_MOSI, 1, 3)>,
                     <NRF_PSEL(SPIM_MISO, 1, 3)>;
+            */
+            psels = <NRF_PSEL(SPIM_SCK,  1, 3)>,
+                    <NRF_PSEL(SPIM_MOSI, 1, 5)>,
+                    <NRF_PSEL(SPIM_MISO, 1, 5)>;
             low-power-enable;
         };
     };
@@ -101,7 +125,8 @@
         spi-max-frequency = <2000000>;   /* PMW3610 は 2MHz 上限 */
 
         /* MOTION = P1.11 / D6。NRESET は R12(10k) で 3V3 プルアップ固定なので GPIO 不要 */
-        irq-gpios = <&gpio1 11 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+        /*irq-gpios = <&gpio1 11 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>; */
+        irq-gpios = <&gpio1 15 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 
         cpi = <400>;   /* 600 は速すぎたので落とした。400 が妥当かは未検証 */
 

@@ -29,17 +29,31 @@
 
         /* col2row なので row = 入力（プルダウン） */
         row-gpios
+            /*
             = <&gpio0  3 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW0 = D1  / P0.03
             , <&gpio0  4 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW1 = D4  / P0.04
             , <&gpio0  5 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW2 = D5  / P0.05
             , <&gpio1 11 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW3 = D6  / P1.11
+            */
+            = <&gpio1 11 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW0 = D1  / P0.03
+            , <&gpio0  5 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW1 = D4  / P0.04
+            , <&gpio0  4 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW2 = D5  / P0.05
+            , <&gpio0 29 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW3 = D6  / P1.11
             ;
 
         /* col = 出力 */
         col-gpios
+            /*
             = <&gpio0  2 GPIO_ACTIVE_HIGH>   // COL0 = D0  / P0.02
             , <&gpio0 28 GPIO_ACTIVE_HIGH>   // COL1 = D2  / P0.28
             , <&gpio0 29 GPIO_ACTIVE_HIGH>   // COL2 = D3  / P0.29
+            , <&gpio1 13 GPIO_ACTIVE_HIGH>   // COL3 = D8  / P1.13
+            , <&gpio1 14 GPIO_ACTIVE_HIGH>   // COL4 = D9  / P1.14
+            , <&gpio1 15 GPIO_ACTIVE_HIGH>   // COL5 = D10 / P1.15
+            */
+            = <&gpio0 28 GPIO_ACTIVE_HIGH>   // COL0 = D0  / P0.02
+            , <&gpio0  3 GPIO_ACTIVE_HIGH>   // COL1 = D2  / P0.28
+            , <&gpio1 12 GPIO_ACTIVE_HIGH>   // COL2 = D3  / P0.29
             , <&gpio1 13 GPIO_ACTIVE_HIGH>   // COL3 = D8  / P1.13
             , <&gpio1 14 GPIO_ACTIVE_HIGH>   // COL4 = D9  / P1.14
             , <&gpio1 15 GPIO_ACTIVE_HIGH>   // COL5 = D10 / P1.15
