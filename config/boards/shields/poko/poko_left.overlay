@@ -24,11 +24,10 @@
      */
     kscan0: kscan {
         compatible = "zmk,kscan-gpio-matrix";
-        diode-direction = "row2col";
+        diode-direction = "col2row";
         wakeup-source;
 
         /* row2col なので row = 出力 / col = 入力（プルダウン） */
-        /* 本番基板（col2row）用:
         row-gpios
             = <&gpio0  3 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW0 = D1  / P0.03
             , <&gpio0  4 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // ROW1 = D4  / P0.04
@@ -42,22 +41,6 @@
             , <&gpio1 13 GPIO_ACTIVE_HIGH>   // COL3 = D8  / P1.13
             , <&gpio1 14 GPIO_ACTIVE_HIGH>   // COL4 = D9  / P1.14
             , <&gpio1 15 GPIO_ACTIVE_HIGH>   // COL5 = D10 / P1.15
-            ;
-        */
-        row-gpios
-            = <&gpio1 11 GPIO_ACTIVE_HIGH>   // ROW0 = D6 / P1.11
-            , <&gpio0  5 GPIO_ACTIVE_HIGH>   // ROW1 = D5 / P0.05
-            , <&gpio0  4 GPIO_ACTIVE_HIGH>   // ROW2 = D4 / P0.04
-            , <&gpio0 29 GPIO_ACTIVE_HIGH>   // ROW3 = D3 / P0.29
-            ;
-
-        col-gpios
-            = <&gpio0 28 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL0 = D2  / P0.28
-            , <&gpio0  3 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL1 = D1  / P0.03
-            , <&gpio1 12 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL2 = D7  / P1.12
-            , <&gpio1 13 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL3 = D8  / P1.13
-            , <&gpio1 14 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL4 = D9  / P1.14
-            , <&gpio1 15 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>   // COL5 = D10 / P1.15
             ;
     };
 };
