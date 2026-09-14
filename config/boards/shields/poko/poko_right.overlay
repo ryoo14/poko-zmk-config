@@ -102,7 +102,7 @@
         /* MOTION = P0.15（試作）。NRESET は R12(10k) で 3V3 プルアップ固定なので GPIO 不要 */
         irq-gpios = <&gpio1 11 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 
-        cpi = <400>;   /* 600 は速すぎたので落とした。400 が妥当かは未検証 */
+        cpi = <600>;   /* RMK 版 (keyboard.toml の cpi / POINTING_CPI) に揃える */
 
         /* 試作基板で左右反転を確認。invert-x で直るかは未検証 */
         // swap-xy;
@@ -132,13 +132,16 @@
          * QMK 版の poko_lptb_set_scroll_layer(_SCROLL) 相当。
          * SCROLL レイヤ(5)の間は XY をスクロールに読み替える。
          * transform は pointing_device_task_user() の v/h 反転（ナチュラルスクロール）に対応。
+         *
+         * 速さは RMK 版に揃える。RMK はスクロール中に CPI 200 ÷ divisor 10 = 20。
+         * ZMK はレイヤで CPI を切り替えられないので、600 ÷ 30 = 20 で合わせる。
          */
         scroller {
             layers = <5>;
             input-processors
                 = <&zip_xy_to_scroll_mapper>
                 , <&zip_scroll_transform (INPUT_TRANSFORM_X_INVERT | INPUT_TRANSFORM_Y_INVERT)>
-                , <&zip_scroll_scaler 1 8>;
+                , <&zip_scroll_scaler 1 30>;
         };
     };
 };
