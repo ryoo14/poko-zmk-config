@@ -44,7 +44,7 @@
 
 #include "poko.dtsi"
 #include <input/processors.dtsi>
-#include <dt-bindings/zmk/input_transform.h>
+#include <input/processors/runtime-input-processor.dtsi>
 #include <zephyr/dt-bindings/input/input-event-codes.h>
 
 /* 右手の物理列0-5 を論理列6-11 へ */
@@ -93,21 +93,22 @@
 
     trackball: trackball@0 {
         status = "okay";
-        /* ⚠ compatible / CONFIG 名は採用フォーク（badjeff/zmk-pmw3610-driver）の
-           README と必ず突き合わせる。west.yml・poko_right.conf と3点セット。 */
-        compatible = "pixart,pmw3610-alt";
+        /* DYA Studio の Trackball タブ対応ドライバ（cormoran/zmk-driver-pmw3610-with-custom-studio-rpc）。
+           west.yml・poko_right.conf と3点セット。 */
+        compatible = "cormoran,pmw3610";
         reg = <0>;
         spi-max-frequency = <2000000>;   /* PMW3610 は 2MHz 上限 */
 
-        /* MOTION = P0.15（試作）。NRESET は R12(10k) で 3V3 プルアップ固定なので GPIO 不要 */
+        /* MOTION = P1.11 (D6)。NRESET は R12(10k) で 3V3 プルアップ固定なので GPIO 不要 */
         irq-gpios = <&gpio1 11 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 
+        /* 初期値。DYA Studio から変更すると settings 側の値が優先される */
         cpi = <600>;   /* RMK 版 (keyboard.toml の cpi / POINTING_CPI) に揃える */
 
-        /* 試作基板で左右反転を確認。invert-x で直るかは未検証 */
-        // swap-xy;
-        invert-x;
-        // invert-y;
+        /* DYA Studio 上の設定キー名（cpi@trackball など） */
+        settings-id = "trackball";
+
+        /* 軸の反転はこのドライバでは DT ではなく Kconfig（CONFIG_PMW3610_INVERT_X） */
 
         evt-type = <INPUT_EV_REL>;
         x-input-code = <INPUT_REL_X>;
@@ -123,25 +124,41 @@
         device = <&trackball>;
 
         /*
-         * QMK 版の set_auto_mouse_layer(_MOUSE) 相当。
-         * ボールを動かすと MOUSE レイヤ(4)が一時的に有効、停止 400ms で解除。
+         * DYA Studio の Trackball タブから調整できる runtime input processor を通す。
+         * 並び順が大事: mouse（全レイヤ）→ scroll（SCROLL レイヤの間だけ XY をホイールへ）。
+         * DT の値は初期値で、Studio で変更すると settings 側の値が優先される。
          */
-        input-processors = <&zip_temp_layer 4 400>;
-
-        /*
-         * QMK 版の poko_lptb_set_scroll_layer(_SCROLL) 相当。
-         * SCROLL レイヤ(5)の間は XY をスクロールに読み替える。
-         * transform は pointing_device_task_user() の v/h 反転（ナチュラルスクロール）に対応。
-         *
-         * 速さは RMK 版に揃える。RMK はスクロール中に CPI 200 ÷ divisor 10 = 20。
-         * ZMK はレイヤで CPI を切り替えられないので、600 ÷ 30 = 20 で合わせる。
-         */
-        scroller {
-            layers = <5>;
-            input-processors
-                = <&zip_xy_to_scroll_mapper>
-                , <&zip_scroll_transform (INPUT_TRANSFORM_X_INVERT | INPUT_TRANSFORM_Y_INVERT)>
-                , <&zip_scroll_scaler 1 30>;
-        };
+        input-processors = <&mouse_runtime_input_processor &scroll_runtime_input_processor>;
     };
+};
+
+/*
+ * QMK 版の set_auto_mouse_layer(_MOUSE) 相当。
+ * ボールを動かすと MOUSE レイヤ(4)が一時的に有効、停止 400ms で解除。
+ * （旧 &zip_temp_layer 4 400 の置き換え）
+ */
+&mouse_runtime_input_processor {
+    temp-layer-enabled;
+    temp-layer = <4>;
+    temp-layer-deactivation-delay-ms = <400>;
+};
+
+/*
+ * QMK 版の poko_lptb_set_scroll_layer(_SCROLL) 相当。
+ * SCROLL レイヤ(5)の間は XY をスクロールに読み替える。
+ * x/y-invert は pointing_device_task_user() の v/h 反転（ナチュラルスクロール）に対応。
+ * 処理順は XY→ホイール変換 → 反転 → スケールで、旧 zip_* 3段と同じ。
+ *
+ * 速さは RMK 版に揃える。RMK はスクロール中に CPI 200 ÷ divisor 10 = 20。
+ * ZMK はレイヤで CPI を切り替えられないので、600 ÷ 30 = 20 で合わせる。
+ */
+&scroll_runtime_input_processor {
+    active-layers = <(1 << 5)>;
+    x-codes = <INPUT_REL_X>;
+    y-codes = <INPUT_REL_Y>;
+    xy-to-scroll-enabled;
+    x-invert;
+    y-invert;
+    scale-multiplier = <1>;
+    scale-divisor = <30>;
 };
