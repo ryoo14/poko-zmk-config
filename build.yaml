@@ -7,28 +7,39 @@
 # conf に書くだけでは不足で、スニペット側の overlay が CDC-ACM デバイスを生やして
 # chosen zephyr,console を向けている。常用ファームは消費電力のため無効のままにし、
 # ブリングアップ用に別 artifact として並べる。
+#
+# 全エントリに `nrf52840-nosd` スニペットを付ける（SoftDevice 無し前提のレイアウト）。
+# この XIAO は RMK を焼いたことがあり、RMK の uf2 は 0x1000 から書き込むので
+# SoftDevice (0x1000-0x27000) が消えている。SoftDevice が無いと Adafruit
+# bootloader はアプリを 0x1000 から起動するため、既定の 0x27000 始まりの ZMK は
+# 一切起動しない（USB も BLE も無反応になる）。nosd だとコードが 0x1000 から、
+# storage が 0xD4000 からになる。
+#
+# 複数スニペットは `snippet:` に並べられない（ワークフローが `-S "a b"` と1引数で渡す）
+# ので、2つ要るエントリは cmake-args の -DSNIPPET にリストで渡す。
 include:
   # --- 常用（ログ無し）---
   # 左 = ペリフェラル（キーのみ）
   - board: xiao_ble//zmk
     shield: poko_left
+    snippet: nrf52840-nosd
   # 右 = セントラル（キー + トラックボール）
   - board: xiao_ble//zmk
     shield: poko_right
-    snippet: studio-rpc-usb-uart
-    cmake-args: -DCONFIG_ZMK_STUDIO=y
+    cmake-args: -DCONFIG_ZMK_STUDIO=y -DSNIPPET="nrf52840-nosd;studio-rpc-usb-uart"
 
   # --- ブリングアップ用（USB シリアルにログが出る）---
   - board: xiao_ble//zmk
     shield: poko_left
-    snippet: zmk-usb-logging
+    cmake-args: -DSNIPPET="nrf52840-nosd;zmk-usb-logging"
     artifact-name: poko_left-logging
   - board: xiao_ble//zmk
     shield: poko_right
-    snippet: zmk-usb-logging
+    cmake-args: -DSNIPPET="nrf52840-nosd;zmk-usb-logging"
     artifact-name: poko_right-logging
 
   # --- ペアリングが壊れた時の設定リセット用 ---
   # 焼いたあと必ず本ファームを焼き直すこと
   - board: xiao_ble//zmk
     shield: settings_reset
+    snippet: nrf52840-nosd
