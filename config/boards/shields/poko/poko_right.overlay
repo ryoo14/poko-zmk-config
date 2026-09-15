@@ -136,10 +136,16 @@
  * QMK 版の set_auto_mouse_layer(_MOUSE) 相当。
  * ボールを動かすと MOUSE レイヤ(4)が一時的に有効、停止 400ms で解除。
  * （旧 &zip_temp_layer 4 400 の置き換え）
+ *
+ * temp-layer-activation-delay-ms は require-prior-idle-ms 相当。
+ * 最後のキー押下からこの時間が経つまではボールが動いてもレイヤに乗らない
+ * （タイピング中の誤爆防止。未指定だと 100ms）。
+ * 右手がセントラルなので、左手のキー押下もちゃんと数えられる。
  */
 &mouse_runtime_input_processor {
     temp-layer-enabled;
     temp-layer = <4>;
+    temp-layer-activation-delay-ms = <200>;
     temp-layer-deactivation-delay-ms = <400>;
 };
 
