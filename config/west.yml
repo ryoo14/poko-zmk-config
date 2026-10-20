@@ -53,6 +53,6 @@ manifest:
       revision: 5c34ea0eec246a1c986111417cd779b53144629a   # main @ 2026-07-22
     - name: zmk-module-runtime-input-processor
       remote: cormoran
-      revision: 43618985f8c9d5457cc333b7ca0733f2d361911e   # main @ 2026-07-19
+      revision: decf628d7ce5ed95b520c650824c28ea9de649c1   # main @ 2026-09-27（慣性 #28）
   self:
     path: config

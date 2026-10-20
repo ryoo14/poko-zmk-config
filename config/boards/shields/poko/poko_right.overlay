@@ -167,4 +167,11 @@
     y-invert;
     scale-multiplier = <1>;
     scale-divisor = <30>;
+
+    /*
+     * 慣性スクロール。勢いよく弾くと指を離してもスクロールが続き、徐々に減速する。
+     * 逆方向に転がすか SCROLL レイヤを抜けると止まる。
+     * 値はモジュールのデフォルト。DYA Studio の Trackball タブで調整できる。
+     */
+    inertia-enabled;
 };
